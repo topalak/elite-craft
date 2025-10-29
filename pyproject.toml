@@ -1,0 +1,18 @@
+[project]
+name = "elite-craft"
+version = "0.1.0"
+description = "Forging Elite AI Systems"
+readme = "README.md"
+authors = [
+    { name = "Efe Topalak", email = "topalakefe@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "ai-common @ git+https://github.com/bgunyel/ai-common.git@main",
+    "deepagents>=0.1.4",
+    "pydantic-settings==2.11.0",
+    "fastapi==0.120.0",
+    "streamlit==1.50.0",
+    "supabase==2.22.1",
+    "uvicorn==0.38.0",
+]
