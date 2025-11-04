@@ -1,15 +1,35 @@
-#add metadata into database, while searching through chunks if we filter the source that will save a lot of time.
-
-
-#Example of qdrant usage
-
 """
-from qdrant_client import QdrantClient
-
-qdrant_client = QdrantClient(
-    url="https://05a4c951-02f7-4e8b-b746-98f77fa6ffce.eu-central-1-0.aws.cloud.qdrant.io:6333",
-    api_key="e.........6VVw",
-)
-
-print(qdrant_client.get_collections())
+This file split the document into chunks and embed them to database
+There are multiple techniques for improve RAG performance which are Contextual Retrieval (using prompt caching), reranking
 """
+
+import docling
+
+from elite_craft.model_provider import ModelConfig
+from config import settings
+
+from crawling import crawl
+
+url_to_crawl = "https://docs.langchain.com/oss/python/langgraph/overview"
+
+embedding_model_config = ModelConfig(model="embeddinggemma", model_provider_url=settings.OLLAMA_HOST_MY_LOCAL)
+
+class Embedder:
+    def __init__(self):
+        self.embedding_model = embedding_model_config.get_embedding()
+
+
+    #def
+
+    def contextual_retrieval(self):
+        prompt = """ <document>
+        {{ $('Extract Document Text').first().json.data }}
+        </document>
+        Here is the chunk we want to situate within the whole document
+        <chunk>
+        {{ $json.chunk }}
+        </chunk>
+        Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else. """
+
+        # todo, handle that by using list comprehension
+
