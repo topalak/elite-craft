@@ -7,8 +7,9 @@ from crawl4ai import AsyncWebCrawler#, BrowserConfig
 from elite_craft.model_provider import ModelConfig
 from config import settings
 
-from crawling import crawl
-
+#TODO, 1- we need to initialize some of them in __init__ to avoid latency  (converter, chunker)
+# 2- add try exception block and docstring for each method
+# 3
 
 url_to_crawl = "https://docs.langchain.com/oss/python/langgraph/overview"
 
@@ -28,49 +29,97 @@ class Pipeline:
         return result
 
     @staticmethod
-    def chunking(crawled):
-        doc = DocumentConverter().convert(source=crawled).document
+    def chunking(crawled_result:str):
+        doc = DocumentConverter().convert(source=crawled_result).document
         chunker = HybridChunker()
         chunk_iter = chunker.chunk(dl_doc=doc)
 
         return list(chunk_iter)
 
 
-    def contextual_chunking(self, chunks:list[str], document:str):
+    async def contextual_chunking(self, chunks:list[str], document:str):
         prompt = """ <document>
-        {{ $('Extract Document Text').first().json.data }}
+        {document}
         </document>
-        Here is the chunk we want to situate within the whole document
+    
+        Here is the chunk we want to situate within the whole document:
         <chunk>
-        {{ $json.chunk }}
+        {chunk}
         </chunk>
-        Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else. """
+    
+        Please give a short succinct context to situate this chunk within the overall 
+        document for the purposes of improving search retrieval of the chunk. 
+        Answer only with the succinct context and nothing else."""
 
-        def _chunk_enhancer(chunk:str):
+
+        async def _chunk_enhancer(chunk:str):
             """
             Uses llm to enhance the chunk.
 
             Args:
                 chunk (str): The chunk to enhance
+
+            Returns:
+                str: list of enhanced chunks
             """
 
             formatted_prompt = prompt.format(document=document, chunk=chunk)
-            enhanced_chunk = self.cached_llm.invoke([
+            enhanced_chunk = await self.cached_llm.ainvoke([
                 {"role":"system", "content":formatted_prompt},
             ])
             return enhanced_chunk
 
-        new_chunks = [_chunk_enhancer(chunk) for chunk in chunks]
+        new_chunks = await asyncio.gather(*[_chunk_enhancer(chunk) for chunk in chunks])  #todo we need to find ollama cloud's per minute request limit and
 
         return new_chunks
 
-    def process(self):
+    async def process(self, url: str):
+        """
+        Full pipeline: crawl → chunk → enhance with context.
 
-        # todo, use crawl method's result for 2 times, first one is for hybrid chunking with docling, second one is for contextual chunking
-        asyncio.run(crawl(url="https://www.google.com/search?q=python"))
-        print("Processing")
+        Uses crawl result twice:
+        1. For hybrid chunking with Docling (to create chunks)
+        2. For contextual chunking (as the full document context)
+
+        Args:
+            url: URL to process
+
+        Returns:
+            List of enhanced chunks with contextual information
+        """
+        # Step 1: Crawl the URL
+        crawled_result = await self.crawl(url)  #question = Does await waits for corresponded method's inside process right? But we already awaited inside the method, do we need to await again?
+
+        # Step 2: Extract full document text for contextual chunking
+        full_document_text = crawled_result.markdown
+
+        # Step 3: Chunk the crawled result using hybrid chunking
+        chunks = self.chunking(crawled_result)
+
+        # Step 4: Convert chunks to strings (if they're not already strings)
+        chunk_texts = [str(chunk) for chunk in chunks]
+
+        # Step 5: Enhance chunks with contextual information
+        enhanced_chunks = await self.contextual_chunking(
+            chunks=chunk_texts,
+            document=full_document_text
+        )
+
+        return enhanced_chunks
+
+#TODO upload to the database, 
 
 
-def main():
-    run = Pipeline.process()
-    print(run)
+async def main():
+    """
+    Example usage of the pipeline.
+    """
+    pipeline = Pipeline()
+    enhanced_chunks = await pipeline.process(url=url_to_crawl)
+
+    print(f"Successfully processed {len(enhanced_chunks)} enhanced chunks")
+    return enhanced_chunks
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

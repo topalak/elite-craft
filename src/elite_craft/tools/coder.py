@@ -40,41 +40,12 @@ class Coder(BaseModel):
 llm_config = ModelConfig(model='gpt-oss:20b-cloud', use_ollama_cloud=True, api_key=settings.OLLAMA_API_KEY)
 llm = llm_config.get_llm()
 
-class Coder(BaseModel):
-    """
-    Generates code by synthesizing retrieved cookbook examples.
-
-    This tool implements RAG pattern:
-    1. Uses retrieved examples as context (from retriever tool)
-    2. Synthesizes/adapts/combines them into user's specific solution
-    3. Handles: generation, adaptation, and combination in one tool
-
-    This is NOT generating from scratch - it intelligently applies
-    proven patterns from documentation cookbooks.
-    """
-
-    query: str = Field(
-        description="User's code request. "
-                    "Example: 'Create a LangGraph agent with Supabase state persistence'"
-    )
-
-    retrieved_examples: list[str] = Field(
-        description="Relevant code examples retrieved from cookbooks. "
-                    "These provide the context and patterns for generation."
-    )
-
-    user_context: Optional[str] = Field(
-        default=None,
-        description="Additional user-specific context like custom schema, existing code, or requirements"
-    )
-
-def generate_code(coder_input: Coder, llm) -> str:
+def generate_code(coder_input: Coder) -> str:
     """
     Generate code using RAG pattern with LLM.
 
     Args:
         coder_input: Coder model with query and retrieved examples
-        llm: Language model instance for generation
 
     Returns:
         Generated Python code as string

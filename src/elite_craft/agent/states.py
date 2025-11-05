@@ -7,5 +7,3 @@ class AgentState(BaseModel):
     context_window : list[BaseMessage]
     query : str
     retrieved : str
-
-
