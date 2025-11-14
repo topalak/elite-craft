@@ -13,7 +13,7 @@ from config import settings
 
 url_to_crawl = "https://docs.langchain.com/oss/python/langgraph/overview"
 
-embedding_model_config = ModelConfig(model="embeddinggemma", model_provider_url=settings.OLLAMA_HOST_MY_LOCAL)
+embedding_model_config = ModelConfig(model="embeddinggemma", model_provider_url=settings.OLLAMA_HOST_LOCAL)
 cached_llm_config = ModelConfig(model='gpt-oss:20b-cloud', use_ollama_cloud=True)
 
 
