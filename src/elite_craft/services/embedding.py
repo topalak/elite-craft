@@ -1,35 +1,51 @@
 """
-This file split the document into chunks and embed them to database
-There are multiple techniques for improve RAG performance which are Contextual Retrieval (using prompt caching), reranking
-"""
+Service for embedding text chunks using Ollama embedding models.
 
-import docling
+Supports multiple techniques for improved RAG performance including
+Contextual Retrieval (using prompt caching) and reranking.
+"""
 
 from elite_craft.model_provider import ModelConfig
 from config import settings
 
-from crawling import crawl
-
-url_to_crawl = "https://docs.langchain.com/oss/python/langgraph/overview"
-
-embedding_model_config = ModelConfig(model="embeddinggemma", model_provider_url=settings.OLLAMA_HOST_MY_LOCAL)
 
 class Embedder:
-    def __init__(self):
+    """
+    Service for generating embeddings from text chunks.
+
+    Uses Ollama's embedding models (default: embeddinggemma) to convert
+    text chunks into vector representations for storage in Qdrant.
+    """
+
+    def __init__(
+        self,
+        model: str = None,
+        model_provider_url: str = None,
+    ):
+
+        self.model = model
+        self.model_provider_url = model_provider_url
+
+        embedding_model_config = ModelConfig(model=self.model, model_provider_url=self.model_provider_url)
         self.embedding_model = embedding_model_config.get_embedding()
 
+    def embed(self, chunks: list[str]) -> list[list[float]]:
+        """
+        Generate embeddings for a list of text chunks.
 
-    #def
+        Args:
+            chunks: List of text strings to embed
 
-    def contextual_retrieval(self):
-        prompt = """ <document>
-        {{ $('Extract Document Text').first().json.data }}
-        </document>
-        Here is the chunk we want to situate within the whole document
-        <chunk>
-        {{ $json.chunk }}
-        </chunk>
-        Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else. """
+        Returns:
+            List of embedding vectors (each vector is a list of floats)
 
-        # todo, handle that by using list comprehension
+        """
+        # TODO: Implement batch optimizing with async for large datasets
+        embeddings = self.embedding_model.embed_documents(chunks)
+        return embeddings
+
+
+
+
+
 
