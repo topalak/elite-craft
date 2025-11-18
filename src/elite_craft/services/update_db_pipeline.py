@@ -55,7 +55,7 @@ class UpdateDBPipeline:  #todo init
         # Step 3: Chunk the document (CPU-bound - run in thread to not block event loop)
         chunks = await asyncio.to_thread(
             self.chunker.chunk,
-            crawled_data["body_text"]
+            crawled_data["url"]
         )
 
         # Step 4: Generate embeddings (GPU-bound - run in thread to not block event loop)
@@ -130,6 +130,7 @@ async def main():
     result = await pipeline.process(url=url_to_crawl)
     print(f"\n✅ Result: {result}\n")
 
+    """
     # Example 2: Process multiple URLs concurrently
     print("=" * 60)
     print("Example 2: Processing Multiple URLs Concurrently")
@@ -147,8 +148,9 @@ async def main():
     concurrent_results = await pipeline.process_sitemap(example_urls)
 
     print(f"\n Total processed: {len(concurrent_results)} URLs")
-    
-    return concurrent_results
+    """
+
+    return result
 
 
 if __name__ == "__main__":

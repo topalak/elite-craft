@@ -22,13 +22,13 @@ class SupabaseUploadService:
 
     async def insert_metadata(self, content_to_insert: dict) -> dict:
         """
-        Insert document metadata into the metadata table.
+        Insert or update document metadata using upsert (handles duplicate URLs).
 
         Args:
             content_to_insert: Dict with keys: url, source, crawled_time, body_text
 
         Returns:
-            Supabase response with inserted record
+            Supabase response with inserted/updated record
 
         Schema:
             - id: serial primary key
@@ -36,10 +36,22 @@ class SupabaseUploadService:
             - source: varchar not null
             - crawled_time: timestamp with time zone not null
             - body_text: text
+
+        Note:
+            Uses upsert to update existing records if URL already exists.
+            This prevents duplicate key violations on re-crawling.
         """
         return await asyncio.to_thread(
-            self.supabase_client.table('metadata').insert(content_to_insert).execute
+            self.supabase_client.table('metadata')
+            .upsert(content_to_insert, on_conflict='url')
+            .execute
         )
+    """
+    old version 
+        return await asyncio.to_thread(
+        self.supabase_client.table('metadata').insert(content_to_insert).execute
+    )
+    """
 
     async def insert_chunks(
             self,

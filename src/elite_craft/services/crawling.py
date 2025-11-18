@@ -62,7 +62,11 @@ class Crawler:
             url: URL to crawl
 
         Returns:
-            Dict with keys: body_text, crawled_time, url, source
+            Dict with keys:
+                - body_text (str): Markdown content
+                - crawled_time (str): ISO format timestamp
+                - url (str): Source URL
+                - source (str): Framework name
         """
         async with AsyncWebCrawler() as crawler:
             result = await crawler.arun(url=url)
@@ -70,8 +74,8 @@ class Crawler:
         # Extract source name from URL
         source = self._extract_source(url)
 
-        # Get current time in configured timezone
-        crawled_time = datetime.now(tz=settings.TIME_ZONE)
+        # Get current time in configured timezone as ISO format string
+        crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
         return {
             "body_text": result.markdown,
