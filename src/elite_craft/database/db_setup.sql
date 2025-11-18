@@ -4,7 +4,7 @@
   -- Table 1: Crawled Site's Metadata
   create table metadata (
       id serial primary key,                  -- Auto-incrementing primary key
-      url varchar not null unique,       -- identifier
+      url varchar not null unique,       -- identifier   The database schema has url varchar not null unique constraint. If you try to re-crawl the same URL
       source varchar not null,
       crawled_time timestamp with time zone not null,
       body_text text,   --lets keep this part just in case

@@ -28,5 +28,5 @@ class Chunker:
         """
         doc = self.converter.convert(source=source).document
         chunk_iter = self.chunker.chunk(dl_doc=doc)
-
-        return list(chunk_iter)
+        #todo conver to list[str]
+        return [chunk.text for chunk in chunk_iter]
