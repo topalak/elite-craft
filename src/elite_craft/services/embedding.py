@@ -4,17 +4,18 @@ Service for embedding text chunks using Ollama embedding models.
 Supports multiple techniques for improved RAG performance including
 Contextual Retrieval (using prompt caching) and reranking.
 """
+import logging
 
 from elite_craft.model_provider import ModelConfig
-from config import settings
 
+logger = logging.getLogger(__name__)
 
 class Embedder:
     """
     Service for generating embeddings from text chunks.
 
     Uses Ollama's embedding models (default: embeddinggemma) to convert
-    text chunks into vector representations for storage in Qdrant.
+    text chunks into vector representations for storage in Supabase
     """
 
     def __init__(
@@ -40,12 +41,9 @@ class Embedder:
             List of embedding vectors (each vector is a list of floats)
 
         """
-        # TODO: Implement batch optimizing with async for large datasets
-        embeddings = self.embedding_model.embed_documents(chunks)
-        return embeddings
-
-
-
-
-
-
+        try:
+            embeddings = self.embedding_model.embed_documents(chunks)
+            return embeddings
+        except Exception as e:
+            logger.error(f"Failed to embed text: {e}")
+            raise

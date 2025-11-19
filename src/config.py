@@ -1,6 +1,8 @@
 import os
-from pydantic_settings import BaseSettings
 import datetime
+
+from pydantic_settings import BaseSettings
+
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))  #__file__ = current file
 ENV_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, os.pardir))  #os.pardir = os parent directory, that means python will look for .env file in parent folder

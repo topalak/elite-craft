@@ -7,8 +7,8 @@ and pipeline processing.
 
 from elite_craft.services.crawling import Crawler
 from elite_craft.services.chunking import Chunker
-from elite_craft.services.embedding import Embedder
 from elite_craft.services.database_uploading import SupabaseUploadService
+from elite_craft.services.embedding import Embedder
 from elite_craft.services.update_db_pipeline import UpdateDBPipeline
 
 __all__ = [

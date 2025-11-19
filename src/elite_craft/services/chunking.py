@@ -1,6 +1,8 @@
-from docling.document_converter import DocumentConverter
 from docling.chunking import HybridChunker
+from docling.document_converter import DocumentConverter
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Chunker:
     """
@@ -8,25 +10,31 @@ class Chunker:
 
     Initializes converter and chunker once to avoid latency on repeated calls.
     """
+
     def __init__(self):
         self.converter = DocumentConverter()
         self.chunker = HybridChunker()
 
-    def chunk(self, source: str):
+    def chunk(self, content: str) -> list[str]:
         """
         Convert source content to document and chunk it.
 
         Args:
-            source: The source content to chunk (URL, file path, or markdown text)
+            content: The source content to chunk
 
         Returns:
-            List of document chunks
-
-        Example:
-            >>> chunker = Chunker()
-            >>> chunks = chunker.chunk("https://example.com/doc")
+            Chunks as list of strings
         """
-        doc = self.converter.convert(source=source).document
-        chunk_iter = self.chunker.chunk(dl_doc=doc)
-        #todo conver to list[str]
-        return [chunk.text for chunk in chunk_iter]
+
+        try:
+            doc = self.converter.convert(source=content).document
+            chunk_iter = self.chunker.chunk(dl_doc=doc)
+
+            #chunker returns Docling Document, we convert them to string
+            chunks = [chunk.text for chunk in chunk_iter]
+
+            return chunks
+
+        except Exception as e:
+            logger.error(f"Chunking failed!: {e}")
+            raise

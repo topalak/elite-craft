@@ -1,33 +1,35 @@
-from crawl4ai import AsyncWebCrawler
-from config import settings
 from datetime import datetime
+from typing import TypedDict
+
+import logging
+from crawl4ai import AsyncWebCrawler
 from urllib.parse import urlparse
 
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+class CrawledData(TypedDict):
+    body_text: str
+    crawled_time: str
+    url: str
+    source: str
 
 class Crawler:
     """
     Service for asynchronously crawling web pages and extracting content.
 
     Uses Crawl4AI to fetch and parse web pages, converting HTML content into
-    structured markdown format. Designed to extract documentation from framework
+    structured Markdown format. Designed to extract documentation from framework
     sites (LangChain, LangGraph, etc.) for the knowledge base pipeline.
     """
 
     # Map documentation domains to source names
     SOURCE_MAPPING = {
-        "ai.pydantic.dev": "pydantic",
-        "docs.pydantic.dev": "pydantic",
-        "docs.crawl4ai.com": "crawl4ai",
         "docs.langchain.com": "langchain",
         "python.langchain.com": "langchain",
-        "js.langchain.com": "langchain",
-        "docling-project.github.io": "docling",
-        # Add more frameworks as needed
+        #"docling-project.github.io": "docling",
     }
-
-    def __init__(self):
-        """Initialize the crawler."""
-        pass
 
     @staticmethod
     def _extract_source(url: str) -> str:
@@ -38,7 +40,7 @@ class Crawler:
             url: Full documentation URL
 
         Returns:
-            Source name (e.g., 'pydantic', 'langchain', 'docling')
+            Source name (e.g., 'langchain', 'docling')
 
         Raises:
             ValueError: If domain is not in SOURCE_MAPPING
@@ -48,13 +50,11 @@ class Crawler:
 
         if domain in Crawler.SOURCE_MAPPING:
             return Crawler.SOURCE_MAPPING[domain]
+        else:
+            raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING")
 
-        raise ValueError(
-            f"Unknown documentation source: {domain}. "
-            f"Add to Crawler.SOURCE_MAPPING in crawling.py"
-        )
 
-    async def crawl(self, url: str) -> dict:
+    async def crawl(self, url: str) -> CrawledData:
         """
         Crawl a URL and return structured data for database insertion.
 
@@ -64,12 +64,16 @@ class Crawler:
         Returns:
             Dict with keys:
                 - body_text (str): Markdown content
-                - crawled_time (str): ISO format timestamp
+                - crawled_time (str): datetime ISO 8601 format
                 - url (str): Source URL
                 - source (str): Framework name
         """
-        async with AsyncWebCrawler() as crawler:
-            result = await crawler.arun(url=url)
+        try:
+            async with AsyncWebCrawler() as crawler:
+                response = await crawler.arun(url=url)
+        except Exception as e:
+            logger.error(f"Crawler error: {e}")
+            raise
 
         # Extract source name from URL
         source = self._extract_source(url)
@@ -77,11 +81,12 @@ class Crawler:
         # Get current time in configured timezone as ISO format string
         crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
-        return {
-            "body_text": result.markdown,
+        result: CrawledData = {
+            "body_text": response.markdown,
             "crawled_time": crawled_time,
             "url": url,
             "source": source
         }
 
+        return result
 
