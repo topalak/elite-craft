@@ -3,14 +3,13 @@ from typing import Final, TypedDict
 
 import logging
 
-from config import settings
+from src.config import settings
 from elite_craft.services.chunking import Chunker
 from elite_craft.services.crawling import Crawler
 from elite_craft.services.database_uploading import SupabaseUploadService
 from elite_craft.services.embedding import Embedder
 
 logger = logging.getLogger(__name__)
-URL_TO_CRAWL: Final = "https://docs.langchain.com/oss/python/langgraph/overview"  #Constant
 
 class PipelineResult(TypedDict):
     """
@@ -49,7 +48,6 @@ class UpdateDBPipeline:
         #     "url": str,
         #     "source": str
         # }
-        #TODO I need to write the output a file to be able for passing the docling
 
         # Step 2: Upload metadata to database
         await self.uploader.insert_metadata(crawled_data)
@@ -73,7 +71,7 @@ class UpdateDBPipeline:
             url=crawled_data["url"]
         )
 
-        result : PipelineResult =  {
+        result: PipelineResult =  {
             "url": crawled_data["url"],
             "source": crawled_data["source"],
             "chunks_uploaded": upload_result["total_chunks"],
@@ -123,8 +121,8 @@ async def main():
 
     urls = [
         "https://docs.langchain.com/oss/python/langgraph/overview",
-    #    "https://docs.langchain.com/oss/python/langgraph/tutorials/introduction",
-    #    "https://docs.langchain.com/oss/python/langgraph/how-to/tool-calling",
+        "https://docs.langchain.com/oss/python/langgraph/tutorials/introduction",
+        "https://docs.langchain.com/oss/python/langgraph/how-to/tool-calling",
     ]
 
     # Process all URLs concurrently

@@ -1,13 +1,13 @@
 from typing import Final
 import asyncio
-import gc
-
-from supabase import create_client, Client
 import logging
 
-from config import settings
+from supabase import create_client, Client
 
+from src.config import settings
 
+BODY_PREVIEW_START: Final = 300
+BODY_PREVIEW_END: Final = 3000
 logger = logging.getLogger(__name__)
 
 class SupabaseUploadService:
@@ -18,13 +18,13 @@ class SupabaseUploadService:
     to PostgreSQL with pgvector extension.
     """
 
-    BATCH_SIZE: Final = 100
-
     def __init__(self):
         """Initialize Supabase client with service key credentials."""
         self.SUPABASE_URL = settings.SUPABASE_URL
         self.SUPABASE_KEY = settings.SUPABASE_SERVICE_KEY
         self.supabase_client: Client = create_client(self.SUPABASE_URL, self.SUPABASE_KEY)
+        self.BATCH_SIZE: Final = settings.DB_UPLOAD_BATCH_SIZE
+
 
     async def insert_metadata(self, content_to_insert: dict) -> None:
         """
@@ -38,10 +38,12 @@ class SupabaseUploadService:
         """
         try:
             url = content_to_insert.get('url')
+            body_text = content_to_insert['body_text']
+            preview_start = min(BODY_PREVIEW_START, len(body_text))
 
             db_record = {
                 **content_to_insert,
-                'body_preview': content_to_insert['body_text'][300:3000]
+                'body_preview': body_text[preview_start:BODY_PREVIEW_END]
             }
             db_record.pop('body_text')
 
@@ -54,11 +56,6 @@ class SupabaseUploadService:
             )
 
             logger.info(f"Metadata upserted for: {url}")
-
-            #delete copied dict
-            del db_record
-            gc.collect()
-
             return
 
         except Exception as e:
@@ -88,13 +85,14 @@ class SupabaseUploadService:
         Raises:
             ValueError: If chunks and embeddings length mismatch
         """
-        try:
-            # Validate input
-            if len(chunks) != len(embeddings):
-                raise ValueError(
-                    f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
-                )
 
+        # Validate input
+        if len(chunks) != len(embeddings):
+            raise ValueError(
+                f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
+            )
+
+        try:
             # Check if chunks exist for this URL
             existing_chunks = await asyncio.to_thread(
                 self.supabase_client.table('chunks').select('id').eq('url', url).execute
