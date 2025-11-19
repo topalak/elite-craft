@@ -1,8 +1,7 @@
-from wsgiref.simple_server import server_version
-
 from pydantic import BaseModel, Field
 from ..model_provider import ModelConfig
 from config import settings
+
 
 EMBEDDING_MODEL_CONFIG = ModelConfig(model='embeddinggemma', model_provider_url=settings.OLLAMA_HOST_MY_LOCAL)
 
@@ -13,8 +12,6 @@ class RetrieverTool(BaseModel):
     That tool retrieves related chunks from the database.
     """
 
-    source: str = Field(description="Exact framework name, you need to get that information from user's query"
-                                    "example: How works LangGraph's streaming? --> source = langgraph") #todo we must convert any generated value into lower case for more robust output
     query: str = Field(description="query that we calculate the similarity score")
 
 
