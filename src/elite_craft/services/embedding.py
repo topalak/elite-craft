@@ -20,8 +20,8 @@ class Embedder:
 
     def __init__(
         self,
-        model: str = None,
-        model_provider_url: str = None,
+        model: str,
+        model_provider_url: str,
     ):
 
         self.model = model
@@ -40,6 +40,8 @@ class Embedder:
         Returns:
             List of embedding vectors (each vector is a list of floats)
 
+        Raises:
+            Exception: If embedding model fails to generate embeddings
         """
         try:
             embeddings = self.embedding_model.embed_documents(chunks)

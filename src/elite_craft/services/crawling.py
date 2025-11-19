@@ -5,7 +5,7 @@ import logging
 from crawl4ai import AsyncWebCrawler
 from urllib.parse import urlparse
 
-from config import settings
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +67,18 @@ class Crawler:
                 - crawled_time (str): datetime ISO 8601 format
                 - url (str): Source URL
                 - source (str): Framework name
+        Raises:
+            ValueError: If domain is not in SOURCE_MAPPING
+            Exception: If crawler fails to fetch URL
         """
         try:
             async with AsyncWebCrawler() as crawler:
                 response = await crawler.arun(url=url)
+        except ConnectionError as e:
+            logger.error(f"Network error while crawling {url}: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Crawler error: {e}")
+            logger.error(f"Unexpected crawler error for {url}: {e}")
             raise
 
         # Extract source name from URL
@@ -82,7 +88,7 @@ class Crawler:
         crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
         result: CrawledData = {
-            "body_text": response.markdown,
+            "body_text": str(response.markdown),   # Convert to string to ensure proper Markdown formatting
             "crawled_time": crawled_time,
             "url": url,
             "source": source

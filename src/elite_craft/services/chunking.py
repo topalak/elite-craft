@@ -1,5 +1,6 @@
 from docling.chunking import HybridChunker
 from docling.document_converter import DocumentConverter
+from docling.datamodel.base_models import InputFormat
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,13 +25,20 @@ class Chunker:
 
         Returns:
             Chunks as list of strings
+
+        Raises:
+            Exception: If document conversion or chunking fails
         """
 
         try:
-            doc = self.converter.convert(source=content).document
+            doc = self.converter.convert_string(
+                content=content,
+                format=InputFormat.MD,
+                name=None
+            ).document
             chunk_iter = self.chunker.chunk(dl_doc=doc)
 
-            #chunker returns Docling Document, we convert them to string
+            # Convert Docling Document chunks to string format
             chunks = [chunk.text for chunk in chunk_iter]
 
             return chunks

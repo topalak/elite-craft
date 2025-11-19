@@ -7,7 +7,7 @@
       url varchar not null unique,       -- identifier   The database schema has url varchar not null unique constraint. If you try to re-crawl the same URL
       source varchar not null,
       crawled_time timestamp with time zone not null,
-      body_text text,   --lets keep this part just in case
+      body_preview text,   --lets keep this part just in case
   );
   -- Table 2: Chunks with Embeddings
   create table chunks (
