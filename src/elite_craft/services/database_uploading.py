@@ -21,7 +21,7 @@ class SupabaseUploadService:
     def __init__(self):
         """Initialize Supabase client with service key credentials."""
         self.SUPABASE_URL = settings.SUPABASE_URL
-        self.SUPABASE_KEY = settings.SUPABASE_SERVICE_KEY
+        self.SUPABASE_KEY = settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
         self.supabase_client: Client = create_client(self.SUPABASE_URL, self.SUPABASE_KEY)
         self.BATCH_SIZE: Final = settings.DB_UPLOAD_BATCH_SIZE
 

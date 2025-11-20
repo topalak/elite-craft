@@ -57,47 +57,6 @@
   end;
   $$;
 
-  -- Function to increment search count (optional - add search_count column if needed)
-  -- CREATE OR REPLACE FUNCTION increment_search_count(target_url varchar)
-  -- RETURNS void
-  -- LANGUAGE plpgsql
-  -- AS $$
-  -- BEGIN
-  --     UPDATE metadata
-  --     SET search_count = search_count + 1
-  --     WHERE url = target_url;
-  -- END;
-  -- $$;
-
-
-  -- Enable RLS
-  alter table metadata enable row level security;
-  alter table chunks enable row level security;
-
-  -- Public read access policies
-  create policy "Allow public read access on articles"
-    on metadata for select to public using (true);
-
-  create policy "Allow public read access on chunks"
-    on chunks for select to public using (true);
-
-  -- Insert policies (adjust based on your auth needs)
-  create policy "Allow public insert on articles"
-    on metadata for insert to public with check (true);
-
-  create policy "Allow public insert on chunks"
-    on chunks for insert to public with check (true);
-
-
-  -- UPDATE policy for search_count
-  -- CREATE POLICY "Allow public update search_count on guardian_articles"
-    --ON metadata FOR UPDATE TO public
-    --USING (true)
-    --WITH CHECK (true);
-
-
-
-
 -- CRITICAL: Set timeout for authenticator role
 ALTER ROLE authenticator SET statement_timeout = '2min';
 

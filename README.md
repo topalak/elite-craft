@@ -95,7 +95,7 @@ OLLAMA_HOST_LOCAL=http://localhost:11434
 
 # Supabase
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
+SUPABASE_SERVICE_ROLE_SECRET_KEY=your-service-role-key
 
 # LangSmith (optional)
 LANGSMITH_API_KEY=your-api-key
