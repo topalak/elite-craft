@@ -17,4 +17,6 @@ dependencies = [
     "uvicorn==0.38.0",
     "docling==2.60.0",
     "crawl4ai>=0.7.6",
+    "langchain-huggingface>=1.0.1",
+    "pytest>=9.0.1",
 ]

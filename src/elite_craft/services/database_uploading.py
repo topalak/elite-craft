@@ -4,9 +4,6 @@ import logging
 
 from supabase import create_client, Client
 
-from src.config import settings
-
-BODY_PREVIEW_START: Final = 300
 BODY_PREVIEW_END: Final = 3000
 logger = logging.getLogger(__name__)
 
@@ -18,12 +15,10 @@ class SupabaseUploadService:
     to PostgreSQL with pgvector extension.
     """
 
-    def __init__(self):
+    def __init__(self, supabase_url:str, supabase_key:str, batch_size:int=100):
         """Initialize Supabase client with service key credentials."""
-        self.SUPABASE_URL = settings.SUPABASE_URL
-        self.SUPABASE_KEY = settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
-        self.supabase_client: Client = create_client(self.SUPABASE_URL, self.SUPABASE_KEY)
-        self.BATCH_SIZE: Final = settings.DB_UPLOAD_BATCH_SIZE
+        self.supabase_client: Client = create_client(supabase_url, supabase_key)
+        self.batch_size: int = batch_size
 
 
     async def insert_metadata(self, content_to_insert: dict) -> None:
@@ -36,31 +31,23 @@ class SupabaseUploadService:
         Returns:
             None
         """
-        try:
-            url = content_to_insert.get('url')
-            body_text = content_to_insert['body_text']
-            preview_start = min(BODY_PREVIEW_START, len(body_text))
 
-            db_record = {
-                **content_to_insert,
-                'body_preview': body_text[preview_start:BODY_PREVIEW_END]
-            }
-            db_record.pop('body_text')
+        url = content_to_insert['url']
+        body_text = content_to_insert['body_text']
+
+        db_record = {k: v for k, v in content_to_insert.items() if k != 'body_text'}
+        db_record['body_preview'] = body_text[:BODY_PREVIEW_END]
 
 
-            # Use upsert - updates if exists, inserts if new
-            await asyncio.to_thread(
-                self.supabase_client.table('metadata')
-                .upsert(db_record, on_conflict='url')
-                .execute
-            )
+        # Use upsert - updates if exists, inserts if new
+        await asyncio.to_thread(
+            self.supabase_client.table('metadata')
+            .upsert(db_record, on_conflict='url')
+            .execute
+        )
 
-            logger.info(f"Metadata upserted for: {url}")
-            return
+        logger.info(f"Metadata upserted for: {url}")
 
-        except Exception as e:
-            logger.error(f"Failed to upsert metadata for {content_to_insert.get('url')}: {e}")
-            raise
 
     async def insert_chunks(
             self,
@@ -92,48 +79,43 @@ class SupabaseUploadService:
                 f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
             )
 
-        try:
-            # Check if chunks exist for this URL
-            existing_chunks = await asyncio.to_thread(
-                self.supabase_client.table('chunks').select('id').eq('url', url).execute
+        # Check if chunks exist for this URL
+        existing_chunks = await asyncio.to_thread(
+            self.supabase_client.table('chunks').select('id').eq('url', url).execute
+        )
+
+        if existing_chunks.data:
+            logger.info(f"Existing chunks found in database")
+            await asyncio.to_thread(
+                self.supabase_client.table('chunks').delete().eq('url', url).execute
+            )
+            logger.info(f"Deleted {len(existing_chunks.data)} existing chunks for: {url}")
+
+        # Prepare batch records by using list comprehension
+        chunk_records = [
+            {
+                "url": url,
+                "chunk_number": chunk_number,
+                "content": str(chunk_text),
+                "embedding": embedding
+            }
+            for chunk_number, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
+        ]
+
+        # Insert in batches
+        for i in range(0, len(chunk_records), self.batch_size):
+            batch = chunk_records[i:i + self.batch_size]
+
+            # Wrap sync Supabase call in thread to not block event loop
+            await asyncio.to_thread(
+                self.supabase_client.table('chunks').insert(batch).execute
             )
 
-            if existing_chunks.data:
-                logger.info(f"Existing chunks found in database")
-                await asyncio.to_thread(
-                    self.supabase_client.table('chunks').delete().eq('url', url).execute
-                )
-                logger.info(f"Deleted {len(existing_chunks.data)} existing chunks for: {url}")
+            logger.info(f"Inserted batch {i // self.batch_size + 1}: {len(batch)} chunks")
 
-            # Prepare batch records by using list comprehension
-            chunk_records = [
-                {
-                    "url": url,
-                    "chunk_number": chunk_number,
-                    "content": str(chunk_text),
-                    "embedding": embedding
-                }
-                for chunk_number, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
-            ]
+        logger.info(f"Successfully inserted {len(chunk_records)} chunks for: {url}")
 
-            # Insert in batches
-            for i in range(0, len(chunk_records), self.BATCH_SIZE):
-                batch = chunk_records[i:i + self.BATCH_SIZE]
-
-                # Wrap sync Supabase call in thread to not block event loop
-                await asyncio.to_thread(
-                    self.supabase_client.table('chunks').insert(batch).execute
-                )
-
-                logger.info(f"Inserted batch {i // self.BATCH_SIZE + 1}: {len(batch)} chunks")
-
-            logger.info(f"Successfully inserted {len(chunk_records)} chunks for: {url}")
-
-            return {
-                "total_chunks": len(chunk_records),
-                "success": True
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to insert chunks for {url}: {e}")
-            raise
+        return {
+            "total_chunks": len(chunk_records),
+            "success": True
+        }

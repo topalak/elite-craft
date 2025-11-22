@@ -1,11 +1,10 @@
 import asyncio
-from typing import Final, TypedDict
+from typing import TypedDict
 
 import logging
 
-from src.config import settings
 from elite_craft.services.chunking import Chunker
-from elite_craft.services.crawling import Crawler
+from elite_craft.services.crawling import crawl
 from elite_craft.services.database_uploading import SupabaseUploadService
 from elite_craft.services.embedding import Embedder
 
@@ -22,11 +21,10 @@ class PipelineResult(TypedDict):
     success: bool
 
 class UpdateDBPipeline:
-    def __init__(self):
+    def __init__(self, embedding_model:str, model_provider_url:str, supabase_url:str, supabase_key:str, batch_size:int = 100):
         self.chunker = Chunker()
-        self.crawler = Crawler()
-        self.embedder = Embedder(model="embeddinggemma", model_provider_url=settings.OLLAMA_HOST_LOCAL)
-        self.uploader = SupabaseUploadService()
+        self.embedder = Embedder(model=embedding_model, model_provider_url=model_provider_url)
+        self.uploader = SupabaseUploadService(supabase_url=supabase_url, supabase_key=supabase_key, batch_size=batch_size)
 
 
     async def pipeline(self, url: str) -> PipelineResult:
@@ -41,7 +39,7 @@ class UpdateDBPipeline:
         """
 
         # Step 1: Crawl and get structured data
-        crawled_data = await self.crawler.crawl(url=url)
+        crawled_data = await crawl(url=url)
         # crawled_data = {
         #     "body_text": str, #content
         #     "crawled_time": datetime,
@@ -114,10 +112,15 @@ class UpdateDBPipeline:
 
 
 async def main():
+    from src.config import settings
+
     """
         Executes update db pipeline asynchronously.
     """
-    pipeline = UpdateDBPipeline()
+    pipeline = UpdateDBPipeline(embedding_model='embeddinggemma',
+                                model_provider_url=settings.OLLAMA_HOST_LOCAL,
+                                supabase_url=settings.SUPABASE_URL,
+                                supabase_key=settings.SUPABASE_SECRET_KEY)
 
     urls = [
         "https://docs.langchain.com/oss/python/langgraph/overview",

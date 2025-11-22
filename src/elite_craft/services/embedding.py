@@ -23,11 +23,7 @@ class Embedder:
         model: str,
         model_provider_url: str,
     ):
-
-        self.model = model
-        self.model_provider_url = model_provider_url
-
-        embedding_model_config = ModelConfig(model=self.model, model_provider_url=self.model_provider_url)
+        embedding_model_config = ModelConfig(model=model, model_provider_url=model_provider_url)
         self.embedding_model = embedding_model_config.get_embedding()
 
     def embed(self, chunks: list[str]) -> list[list[float]]:
@@ -39,13 +35,6 @@ class Embedder:
 
         Returns:
             List of embedding vectors (each vector is a list of floats)
-
-        Raises:
-            Exception: If embedding model fails to generate embeddings
         """
-        try:
-            embeddings = self.embedding_model.embed_documents(chunks)
-            return embeddings
-        except Exception as e:
-            logger.error(f"Failed to embed text: {e}")
-            raise
+
+        return self.embedding_model.embed_documents(chunks)

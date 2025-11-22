@@ -25,24 +25,17 @@ class Chunker:
 
         Returns:
             Chunks as list of strings
-
-        Raises:
-            Exception: If document conversion or chunking fails
         """
 
-        try:
-            doc = self.converter.convert_string(
-                content=content,
-                format=InputFormat.MD,
-                name=None
-            ).document
-            chunk_iter = self.chunker.chunk(dl_doc=doc)
+        # Convert str document to Docling Document
+        doc = self.converter.convert_string(
+            content=content,
+            format=InputFormat.MD,
+            name=None
+        ).document
+        chunk_iter = self.chunker.chunk(dl_doc=doc)
 
-            # Convert Docling Document chunks to string format
-            chunks = [chunk.text for chunk in chunk_iter]
+        # Convert Docling Document chunks to string format
+        chunks = [chunk.text for chunk in chunk_iter]
 
-            return chunks
-
-        except Exception as e:
-            logger.error(f"Chunking failed!: {e}")
-            raise
+        return chunks

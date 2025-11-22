@@ -1,4 +1,5 @@
 from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from ai_common.llm import _check_and_pull_ollama_model
 
@@ -15,6 +16,7 @@ class ModelConfig:
         use_ollama_cloud:bool = False,     #Set to True to use Ollama Cloud instead of local
         api_key:str = None,
         use_groq:bool = None,
+        use_ollama_embedding: bool = False,
         #num_predict:int = 128,   that causes tool call error, model cant generate tool call because of the limitation.
     ):
 
@@ -26,6 +28,7 @@ class ModelConfig:
         self.use_ollama_cloud = use_ollama_cloud
         self.api_key = api_key
         self.use_groq = use_groq
+        self.use_ollama_embedding = use_ollama_embedding
         #self.num_predict = num_predict
 
 
@@ -73,15 +76,20 @@ class ModelConfig:
             )
 
     def get_embedding(self):
-        # Load embedding model if needed
-        _check_and_pull_ollama_model(model_name=self.model, ollama_url=self.model_provider_url)
-        ollama_client = Client(host=self.model_provider_url)
-        ollama_client.embed(model=self.model)
 
-        return OllamaEmbeddings(
-            model=self.model,
-            base_url=self.model_provider_url,
-        )
+        if self.use_ollama_embedding:
+
+            # Load embedding model if needed
+            _check_and_pull_ollama_model(model_name=self.model, ollama_url=self.model_provider_url)
+            ollama_client = Client(host=self.model_provider_url)
+            ollama_client.embed(model=self.model)
+
+            return OllamaEmbeddings(
+                model=self.model,
+                base_url=self.model_provider_url,
+            )
+        else:
+            print('huggingface')
 
 
 def main():
