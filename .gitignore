@@ -22,5 +22,5 @@ out/
 # Environment Variables
 .env
 
-# Test folder
-test/
+#Test folder
+tests/
