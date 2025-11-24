@@ -55,22 +55,13 @@ async def crawl(url: str) -> dict:
     """
 
     async with AsyncWebCrawler() as crawler:
-        response = await crawler.arun(url=url)  #TODO error handling to prevent websites go down
+        response = await crawler.arun(url=url)
 
     # Extract source name from URL
     source = _extract_source(url)
 
     # Get current time in configured timezone as ISO format string
-    crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()  #TODO make timezone adjustable (add it to signature)
-
-    """
-      async def crawl(url: str, timezone: datetime.timezone = None) -> dict:
-      if timezone is None:
-          from src.config import settings
-          timezone = settings.TIME_ZONE
-
-      crawled_time = datetime.now(tz=timezone).isoformat()
-    """
+    crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
     result = {
         "body_text": response.markdown,

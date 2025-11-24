@@ -21,10 +21,10 @@ class PipelineResult(TypedDict):
     success: bool
 
 class UpdateDBPipeline:
-    def __init__(self, embedding_model:str, model_provider_url:str, supabase_url:str, supabase_key:str, batch_size:int = 100):
+    def __init__(self, embedding_model:str, supabase_url:str, supabase_key:str):
         self.chunker = Chunker()
-        self.embedder = Embedder(model=embedding_model, model_provider_url=model_provider_url)
-        self.uploader = SupabaseUploadService(supabase_url=supabase_url, supabase_key=supabase_key, batch_size=batch_size)
+        self.embedder = Embedder(model=embedding_model)
+        self.uploader = SupabaseUploadService(supabase_url=supabase_url, supabase_key=supabase_key)
 
 
     async def pipeline(self, url: str) -> PipelineResult:
@@ -118,14 +118,17 @@ async def main():
         Executes update db pipeline asynchronously.
     """
     pipeline = UpdateDBPipeline(embedding_model='embeddinggemma',
-                                model_provider_url=settings.OLLAMA_HOST_LOCAL,
                                 supabase_url=settings.SUPABASE_URL,
-                                supabase_key=settings.SUPABASE_SECRET_KEY)
+                                supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+                                )
 
     urls = [
-        "https://docs.langchain.com/oss/python/langgraph/overview",
-        "https://docs.langchain.com/oss/python/langgraph/tutorials/introduction",
-        "https://docs.langchain.com/oss/python/langgraph/how-to/tool-calling",
+        "https://docs.langchain.com/oss/python/langchain/agents",
+        "https://docs.langchain.com/oss/python/langchain/messages",
+        "https://docs.langchain.com/oss/python/langchain/models",
+        "https://docs.langchain.com/oss/python/langchain/tools",
+        "https://docs.langchain.com/oss/python/langchain/structured-output",
+        "https://docs.langchain.com/oss/python/langchain/middleware/built-in",
     ]
 
     # Process all URLs concurrently

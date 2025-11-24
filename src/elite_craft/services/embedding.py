@@ -21,9 +21,8 @@ class Embedder:
     def __init__(
         self,
         model: str,
-        model_provider_url: str,
     ):
-        embedding_model_config = ModelConfig(model=model, model_provider_url=model_provider_url)
+        embedding_model_config = ModelConfig(model=model)
         self.embedding_model = embedding_model_config.get_embedding()
 
     def embed(self, chunks: list[str]) -> list[list[float]]:
