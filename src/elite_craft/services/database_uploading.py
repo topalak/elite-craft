@@ -2,6 +2,7 @@ from typing import Final
 import asyncio
 import logging
 
+from src.config import settings
 from supabase import create_client, Client
 
 BODY_PREVIEW_END: Final = 3000
@@ -15,10 +16,10 @@ class SupabaseUploadService:
     to PostgreSQL with pgvector extension.
     """
 
-    def __init__(self, supabase_url:str, supabase_key:str, batch_size:int=100):
+    def __init__(self, supabase_url:str, supabase_key:str, batch_size:int = None):
         """Initialize Supabase client with service key credentials."""
         self.supabase_client: Client = create_client(supabase_url, supabase_key)
-        self.batch_size: int = batch_size
+        self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
 
 
     async def insert_metadata(self, content_to_insert: dict) -> None:

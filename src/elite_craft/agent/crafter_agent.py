@@ -1,24 +1,13 @@
-from typing import Final
-
-from langchain.agents import create_agent
-from langchain.agents.middleware import TodoListMiddleware
-
-from elite_craft.model_provider import ModelConfig
-
-LLM_CONFIG: Final = ModelConfig(model='gpt-oss:20b-cloud')
-SYSTEM_PROMPT: Final = f""
-
-class CrafterAgent:
-
-    def __init__(self):
-        self.llm = LLM_CONFIG.get_llm()
-
-    def main(self):
-        agent = create_agent(
-            model=self.llm,
-            tools=print('retriever'),
-            system_prompt=SYSTEM_PROMPT,
-            middleware=[TodoListMiddleware()],
+from elite_craft.tools.retriever import Retriever
 
 
-        )
+class Crafter:
+
+    def __init__(self,embedding_model_name: str, supabase_url: str, supabase_api_key: str):
+        self.retriever = Retriever(supabase_url=supabase_url, supabase_api_key=supabase_api_key, embedding_model_name=embedding_model_name)
+
+
+    def ask(self, query: str) -> list[dict]:
+        response = self.retriever.retrieve_relevant_chunks(query)
+        return response
+

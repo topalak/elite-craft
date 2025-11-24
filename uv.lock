@@ -749,7 +749,6 @@ dependencies = [
     { name = "deepagents" },
     { name = "docling" },
     { name = "fastapi" },
-    { name = "langchain-huggingface" },
     { name = "pydantic-settings" },
     { name = "pytest" },
     { name = "streamlit" },
@@ -764,7 +763,6 @@ requires-dist = [
     { name = "deepagents", specifier = ">=0.1.4" },
     { name = "docling", specifier = "==2.60.0" },
     { name = "fastapi", specifier = "==0.120.0" },
-    { name = "langchain-huggingface", specifier = ">=1.0.1" },
     { name = "pydantic-settings", specifier = "==2.11.0" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "streamlit", specifier = "==1.50.0" },
@@ -1382,20 +1380,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b8/9f/0a80b243f1b890cdc2d856f98d2243f49a58621de16fa80a73eba290bcb4/langchain_groq-1.0.0.tar.gz", hash = "sha256:46645591654c36db7ebc624503f26b38544b9aac0d8cf93e8db7105e049dab74", size = 196702, upload-time = "2025-10-17T15:24:30.81Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/0a/fd2b7545f63f2b05790c76260dc63b7cc9b0af88aa1c1e14fab9795805c2/langchain_groq-1.0.0-py3-none-any.whl", hash = "sha256:378124c2a5247df720093617afbd2dae28b06fc666372ffe7a279a0ce86b28d0", size = 16841, upload-time = "2025-10-17T15:24:29.348Z" },
-]
-
-[[package]]
-name = "langchain-huggingface"
-version = "1.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "huggingface-hub" },
-    { name = "langchain-core" },
-    { name = "tokenizers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/85/8ae6fa9e70a4d2647151df59abf8bc658c159936fcb1e508b86c4f6f23b6/langchain_huggingface-1.0.1.tar.gz", hash = "sha256:9e54b81303b60656f88f45e9a876fb4e3ea0bfb5d40715f802c26811fd8cd72b", size = 248461, upload-time = "2025-11-03T19:53:43.072Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/9d/90dc488e426e4dfef63a77b04a06ef816297a1b036075e5fd34a98436875/langchain_huggingface-1.0.1-py3-none-any.whl", hash = "sha256:032325539dd6b2970910356ecfc363283e8b4e51fb1890de40666a52e95e7d53", size = 27920, upload-time = "2025-11-03T19:53:42.173Z" },
 ]
 
 [[package]]

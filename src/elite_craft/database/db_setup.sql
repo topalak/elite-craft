@@ -4,10 +4,10 @@
   -- Table 1: Crawled Site's Metadata
   create table metadata (
       id serial primary key,                  -- Auto-incrementing primary key
-      url varchar not null unique,       -- identifier   The database schema has url varchar not null unique constraint. If you try to re-crawl the same URL
+      url varchar not null unique,       -- identifier
       source varchar not null,
       crawled_time timestamp with time zone not null,
-      body_preview text,   --lets keep this part just in case
+      body_preview text   --lets keep this part just in case
   );
   -- Table 2: Chunks with Embeddings
   create table chunks (
@@ -26,10 +26,10 @@
   -- Returns chunks ordered by similarity to query embedding, with optional source filtering
   create or replace function match_chunks (
     query_embedding vector(768),
-    match_count int default 15,  -- todo re-rank
+    match_count int default 5,  -- todo re-rank
     source_filter varchar default null
   ) returns table (
-    chunk_id bigint,
+    chunk_id integer,
     url varchar,
     chunk_number integer,
     content text,

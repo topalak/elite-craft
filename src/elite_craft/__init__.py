@@ -6,19 +6,24 @@ Powered by LangChain, LangGraph, and Pydantic with Supabase for knowledge manage
 """
 
 from elite_craft.services import (
-    Crawler,
     Chunker,
     Embedder,
     SupabaseUploadService,
     UpdateDBPipeline,
 )
+from elite_craft.services.crawling import crawl
 
 __version__ = "0.1.0"
 
 __all__ = [
-    "Crawler",
+    #service classes
     "Chunker",
     "Embedder",
     "SupabaseUploadService",
+
+    #service functions
+    "crawl",
+
+    #pipeline
     "UpdateDBPipeline",
 ]
