@@ -2,50 +2,79 @@
 
 **Forging Elite AI Systems**
 
-An AI agent framework designed to help developers build and enhance agentic AI projects. 
+An AI-powered assistant that helps developers build and enhance agentic AI projects using LangChain, LangGraph, and related frameworks.
 
 ---
+
 ## Project Structure
 
 ```
 elite-craft/
 ├── src/
-│   ├── config.py                    # Configuration management
+│   ├── config.py                    # Pydantic settings management
+│   ├── main_dev.py                  # Development entry point
 │   └── elite_craft/
 │       ├── __init__.py
-│       ├── services/                # Core services
-│       │   ├── crawling.py          # Web crawling
-│       │   ├── chunking.py          # Document chunking
-│       │   ├── embedding.py         # Text embeddings
-│       │   ├── database_uploading.py # Database operations
-│       │   └── update_db_pipeline.py # Orchestration pipeline
+│       ├── model_provider.py        # LLM & embedding model configuration
+│       ├── services/                # Core pipeline services
+│       │   ├── crawling.py          # Async web crawling (Crawl4AI)
+│       │   ├── chunking.py          # Document chunking (Docling)
+│       │   ├── embedding.py         # Text embeddings (Ollama/HuggingFace)
+│       │   ├── database_uploading.py # Supabase operations
+│       │   └── update_db_pipeline.py # End-to-end pipeline orchestration
 │       ├── database/
-│       │   └── db_setup.sql         # Database schema
-│       ├── tools/                   # LangChain tools
-│       ├── agent/                   # Agent implementation
-│       └── model_provider.py        # LLM configuration
-├── CLAUDE.md                        # Coding standards
+│       │   └── db_setup.sql         # PostgreSQL schema with pgvector
+│       ├── tools/
+│       │   └── retriever.py         # Semantic search retriever
+│       └── agent/
+│           ├── crafter_agent.py     # Main agent class
+│           └── state.py             # Agent state management
+├── .env.example                     # Environment variables template
+├── CLAUDE.md                        # Python coding standards & conventions
+├── pyproject.toml                   # Project dependencies
 └── README.md
 ```
+
 ## Overview
 
-Elite Craft is an intelligent agent that generates code by providing:
-- Documentation crawling and knowledge base management
-- Semantic search across framework documentation
-- Code generation and review capabilities
-- Best practices guidance for agent development
+Elite Craft is a RAG-powered assistant specialized in AI agent development. It provides:
+- **Knowledge Base Management**: Crawl and process documentation from LangChain, LangGraph, Pydantic, and Supabase
+- **Semantic Search**: Vector-based retrieval using pgvector and embeddings
+- **Intelligent Responses**: Context-aware answers to technical questions about agent frameworks
+- **Development Assistance**: Best practices guidance for building agentic AI systems
 
 ---
 
 ## Architecture
 
-### Core Services
+### Technology Stack
 
-- **Crawler**: Asynchronous web crawling service using Crawl4AI
-- **Chunker**: Document chunking using Docling's hybrid strategy
-- **Embedder**: Text embedding generation with Ollama models
-- **Database Uploader**: Supabase integration for metadata and vector storage
-- **Pipeline**: End-to-end processing orchestration
+**Orchestration & Agent Framework:**
+- **LangChain**: Core framework for LLM application development
+
+**Data Processing:**
+- **Crawl4AI**: Asynchronous web crawling with markdown conversion
+- **Docling**: Intelligent document chunking with hybrid strategies
+- **Pydantic**: Data validation and settings management
+
+**Vector Database & Search:**
+- **Supabase**: PostgreSQL with pgvector extension for vector storage
+- **pgvector**: Cosine similarity search for semantic retrieval
+
+**Embeddings & LLMs:**
+- **Ollama**: Local embedding models (embeddinggemma)
+- **HuggingFace**: Alternative embedding providers
+- Configurable LLM providers (Ollama, Groq)
+
+### Core Components
+
+1. **UpdateDBPipeline** (`services/update_db_pipeline.py`): Orchestrates the complete document ingestion workflow
+2. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown
+3. **Chunker** (`services/chunking.py`): Splits documents into semantic chunks
+4. **Embedder** (`services/embedding.py`): Generates vector embeddings for chunks
+5. **DatabaseUploader** (`services/database_uploading.py`): Manages Supabase operations
+6. **Retriever** (`tools/retriever.py`): Performs semantic search with source filtering
+7. **Crafter Agent** (`agent/crafter_agent.py`): Main agent interface for user queries
 
 ---
 
@@ -87,28 +116,34 @@ cp .env.example .env
 
 ## Configuration
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (use `.env.example` as template):
 
 ```env
-# Ollama
-OLLAMA_HOST_LOCAL=http://localhost:11434
-
-# Supabase
+# Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_SECRET_KEY=your-service-role-key
 
-# LangSmith (optional)
+# LangSmith Configuration (Optional - for tracing)
 LANGSMITH_API_KEY=your-api-key
-LANGSMITH_TRACING=true
+LANGSMITH_TRACING=false
+
+# LLM Provider API Keys
+OLLAMA_API_KEY=your-ollama-key
 ```
+
+The configuration is managed through Pydantic Settings in `src/config.py` with the following defaults:
+- Embedding model: `embeddinggemma`
+- LLM: `gpt-oss:20b-cloud`
+- Batch size for database uploads: 100
+- Timezone: UTC+3
 
 ---
 
 ## Usage
 
-### Running the Update Pipeline
+### 1. Building the Knowledge Base
 
-Process documentation URLs and build your knowledge base:
+Process documentation URLs and populate your vector database:
 
 ```python
 import asyncio
@@ -128,31 +163,6 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-
----
-
-## Development
-
-### Coding Standards
-
-This project follows strict Python coding standards defined in `CLAUDE.md`:
-
-- **KISS Principle**: Keep it simple, stupid
-- **YAGNI**: You aren't gonna need it
-- **Fail Fast**: Check for errors early
-- Google-style docstrings
-- Type hints throughout
-- Comprehensive error handling
-- Structured logging
-
-### Running Tests
-
-```bash
-# Run tests (when available)
-pytest tests/
-```
-
----
 
 ## Pipeline Flow
 

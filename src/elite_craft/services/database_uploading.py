@@ -14,10 +14,16 @@ class SupabaseUploadService:
 
     Handles batch insertion of metadata and chunks with embeddings
     to PostgreSQL with pgvector extension.
+
+    Uses semaphore to limit concurrent chunk uploads to prevent
+    HTTP connection pool exhaustion.
     """
 
+    # Class-level semaphore to limit concurrent chunk upload operations
+    # Set to 1 because each upload does multiple DB operations (SELECT, DELETE, INSERT batches)
+    _upload_semaphore = asyncio.Semaphore(1)
+
     def __init__(self, supabase_url:str, supabase_key:str, batch_size:int = None):
-        """Initialize Supabase client with service key credentials."""
         self.supabase_client: Client = create_client(supabase_url, supabase_key)
         self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
 
@@ -39,16 +45,15 @@ class SupabaseUploadService:
         db_record = {k: v for k, v in content_to_insert.items() if k != 'body_text'}
         db_record['body_preview'] = body_text[:BODY_PREVIEW_END]
 
-
         # Use upsert - updates if exists, inserts if new
+        # Wrap sync Supabase call in thread to not block event loop
         await asyncio.to_thread(
             self.supabase_client.table('metadata')
             .upsert(db_record, on_conflict='url')
             .execute
         )
 
-        logger.info(f"Metadata upserted for: {url}")
-
+        logger.info(f"[DB METADATA COMPLETE] Metadata upserted for: {url}")
 
     async def insert_chunks(
             self,
@@ -59,6 +64,9 @@ class SupabaseUploadService:
         """
         Insert text chunks with embeddings in batches.
         Deletes existing chunks for the URL first if they exist.
+
+        Uses class-level semaphore to limit concurrent uploads and prevent
+        httpx connection pool exhaustion.
 
         Args:
             chunks: List of text chunks from document
@@ -73,50 +81,48 @@ class SupabaseUploadService:
         Raises:
             ValueError: If chunks and embeddings length mismatch
         """
+        # Acquire semaphore to limit concurrent uploads
+        async with self._upload_semaphore:
 
-        # Validate input
-        if len(chunks) != len(embeddings):
-            raise ValueError(
-                f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
+            # Validate input
+            if len(chunks) != len(embeddings):
+                raise ValueError(
+                    f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
+                )
+
+            # Check if chunks exist for this URL
+            existing_chunks = await asyncio.to_thread(
+                self.supabase_client.table('chunks').select('id').eq('url', url).execute
             )
 
-        # Check if chunks exist for this URL
-        existing_chunks = await asyncio.to_thread(
-            self.supabase_client.table('chunks').select('id').eq('url', url).execute
-        )
+            if existing_chunks.data:
+                logger.info(f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}")
+                await asyncio.to_thread(
+                    self.supabase_client.table('chunks').delete().eq('url', url).execute
+                )
+                logger.info(f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}")
 
-        if existing_chunks.data:
-            logger.info(f"Existing chunks found in database")
-            await asyncio.to_thread(
-                self.supabase_client.table('chunks').delete().eq('url', url).execute
-            )
-            logger.info(f"Deleted {len(existing_chunks.data)} existing chunks for: {url}")
+            chunk_records = [
+                {
+                    "url": url,
+                    "chunk_number": chunk_number,
+                    "content": str(chunk_text),
+                    "embedding": embedding
+                }
+                for chunk_number, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
+            ]
 
-        # Prepare batch records by using list comprehension
-        chunk_records = [
-            {
-                "url": url,
-                "chunk_number": chunk_number,
-                "content": str(chunk_text),
-                "embedding": embedding
+            for i in range(0, len(chunk_records), self.batch_size):
+                batch = chunk_records[i:i + self.batch_size]
+
+                # Wrap sync Supabase call in thread to not block event loop
+                await asyncio.to_thread(
+                    self.supabase_client.table('chunks').insert(batch).execute
+                )
+
+            logger.info(f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}")
+
+            return {
+                "total_chunks": len(chunk_records),
+                "success": True
             }
-            for chunk_number, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
-        ]
-
-        # Insert in batches
-        for i in range(0, len(chunk_records), self.batch_size):
-            batch = chunk_records[i:i + self.batch_size]
-
-            # Wrap sync Supabase call in thread to not block event loop
-            await asyncio.to_thread(
-                self.supabase_client.table('chunks').insert(batch).execute
-            )
-
-            logger.info(f"Inserted batch {i // self.batch_size + 1}: {len(batch)} chunks")
-
-        logger.info(f"Successfully inserted {len(chunk_records)} chunks for: {url}")
-
-        return {
-            "total_chunks": len(chunk_records),
-            "success": True
-        }

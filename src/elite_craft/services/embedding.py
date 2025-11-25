@@ -25,15 +25,20 @@ class Embedder:
         embedding_model_config = ModelConfig(model=model)
         self.embedding_model = embedding_model_config.get_embedding()
 
-    def embed(self, chunks: list[str]) -> list[list[float]]:
+    def embed(self, chunks: list[str], url:str) -> list[list[float]]:
         """
         Generate embeddings for a list of text chunks.
 
         Args:
             chunks: List of text strings to embed
+            url: URL to retrieve embeddings from
 
         Returns:
             List of embedding vectors (each vector is a list of floats)
         """
+        logger.info(f"[EMBED START] Starting embedding for {len(chunks)} chunks")
 
-        return self.embedding_model.embed_documents(chunks)
+        embeddings = self.embedding_model.embed_documents(chunks)
+
+        logger.info(f"[EMBED COMPLETE] Generated {len(embeddings)} embeddings for {url} chunks")
+        return embeddings

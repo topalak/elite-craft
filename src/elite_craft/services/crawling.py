@@ -9,7 +9,6 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-
 # Map documentation domains to source names
 SOURCE_MAPPING: Final = {
     "docs.langchain.com": "langchain",
@@ -38,7 +37,6 @@ def _extract_source(url: str) -> str:
     else:
         raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING")
 
-
 async def crawl(url: str) -> dict:
     """
     Crawl a URL and return structured data for database insertion.
@@ -56,6 +54,7 @@ async def crawl(url: str) -> dict:
 
     async with AsyncWebCrawler() as crawler:
         response = await crawler.arun(url=url)
+        logger.info(f"[CRAWL] Response received for: {url}, content length: {len(response.markdown)} chars")
 
     # Extract source name from URL
     source = _extract_source(url)
