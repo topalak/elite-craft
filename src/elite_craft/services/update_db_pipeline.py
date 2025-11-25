@@ -1,7 +1,6 @@
 import asyncio
-from typing import TypedDict
-
 import logging
+from typing import TypedDict
 
 from elite_craft.services.chunking import Chunker
 from elite_craft.services.crawling import crawl
@@ -53,13 +52,15 @@ class UpdateDBPipeline:
         # Step 3: Chunk the document (CPU-bound - run in thread to not block event loop)
         chunks = await asyncio.to_thread(
             self.chunker.chunk,
-            crawled_data["body_text"]
+            content=crawled_data["body_text"],
+            url=crawled_data["url"],
         )
 
         # Step 4: Generate embeddings (GPU-bound - run in thread to not block event loop)
         embeddings = await asyncio.to_thread(
             self.embedder.embed,
-            chunks
+            chunks=chunks,
+            url=crawled_data["url"]
         )
 
         # Step 5: Upload chunks with embeddings
@@ -70,8 +71,6 @@ class UpdateDBPipeline:
         )
 
         result: PipelineResult =  {
-            "url": crawled_data["url"],
-            "source": crawled_data["source"],
             "chunks_uploaded": upload_result["total_chunks"],
             "success": True
         }
@@ -93,7 +92,7 @@ class UpdateDBPipeline:
         # Process all URLs concurrently
         results = await asyncio.gather(
             *[self.pipeline(url) for url in urls],
-            return_exceptions=True  # Continue even if some URLs fail
+            #return_exceptions=True  # Continue even if some URLs fail #todo set it as True
         )
 
         # Count results
@@ -117,6 +116,12 @@ async def main():
     """
         Executes update db pipeline asynchronously.
     """
+    
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
     pipeline = UpdateDBPipeline(embedding_model='embeddinggemma',
                                 supabase_url=settings.SUPABASE_URL,
                                 supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
@@ -129,6 +134,7 @@ async def main():
         "https://docs.langchain.com/oss/python/langchain/tools",
         "https://docs.langchain.com/oss/python/langchain/structured-output",
         "https://docs.langchain.com/oss/python/langchain/middleware/built-in",
+        "https://docs.langchain.com/oss/python/langchain/overview",
     ]
 
     # Process all URLs concurrently
