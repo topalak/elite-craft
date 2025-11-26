@@ -1,13 +1,16 @@
 from datetime import datetime
 import logging
+import asyncio
 from typing import Final
 
 from crawl4ai import AsyncWebCrawler
+from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
 from urllib.parse import urlparse
 
 from src.config import settings
 
 logger = logging.getLogger(__name__)
+logger.setLevel(level=settings.LOGGING_LEVEL)
 
 # Map documentation domains to source names
 SOURCE_MAPPING: Final = {
@@ -51,9 +54,17 @@ async def crawl(url: str) -> dict:
             - url (str): Source URL
             - source (str): Framework name
     """
+    browser_config = BrowserConfig()
+    run_config = CrawlerRunConfig()
 
-    async with AsyncWebCrawler() as crawler:
-        response = await crawler.arun(url=url)
+    async with AsyncWebCrawler(
+            config=browser_config
+            ) as crawler:
+        response = await crawler.arun(
+            url=url,
+            config=run_config
+        )
+
         logger.info(f"[CRAWL] Response received for: {url}, content length: {len(response.markdown)} chars")
 
     # Extract source name from URL
@@ -70,4 +81,5 @@ async def crawl(url: str) -> dict:
     }
 
     return result
+
 

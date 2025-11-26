@@ -1,5 +1,7 @@
+import logging
 import os
 import datetime
+import logging
 
 from pydantic_settings import BaseSettings
 
@@ -20,6 +22,8 @@ class Settings(BaseSettings):
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(offset=datetime.timedelta(hours=3), name='UTC+3')
+
+    LOGGING_LEVEL: int = logging.WARNING
 
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100

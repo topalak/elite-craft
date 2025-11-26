@@ -14,7 +14,7 @@ class Chunker:
         self.converter = DocumentConverter()
         self.chunker = HybridChunker()
 
-    def chunk(self, url:str, content: str) -> list[str]:
+    def chunk(self, content: str, url:str,) -> list[str]:
         """
         Convert source content to document and chunk it.
 
