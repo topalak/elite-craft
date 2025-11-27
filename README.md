@@ -149,6 +149,7 @@ Process documentation URLs and populate your vector database:
 import asyncio
 from elite_craft.services import UpdateDBPipeline
 
+
 async def main():
     pipeline = UpdateDBPipeline()
 
@@ -157,8 +158,9 @@ async def main():
         "https://docs.langchain.com/oss/python/langgraph/tutorials/introduction",
     ]
 
-    results = await pipeline.process(urls)
+    results = await pipeline.process_multiple_urls(urls)
     print(f"Processed {len(results)} URLs")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
