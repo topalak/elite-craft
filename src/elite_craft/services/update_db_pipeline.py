@@ -26,7 +26,7 @@ class UpdateDBPipeline:
         self.uploader = SupabaseUploadService(supabase_url=supabase_url, supabase_key=supabase_key)
 
 
-    async def pipeline(self, url: str) -> PipelineResult:
+    async def process_single_url(self, url: str) -> PipelineResult:
         """
         Full pipeline: crawl → chunk → embed → upload to database.
 
@@ -47,7 +47,7 @@ class UpdateDBPipeline:
         # }
 
         # Step 2: Upload metadata to database
-        await self.uploader.insert_metadata(crawled_data)
+        document_id = await self.uploader.insert_document(crawled_data)
 
         # Step 3: Chunk the document (CPU-bound - run in thread to not block event loop)
         chunks = await asyncio.to_thread(
@@ -67,6 +67,7 @@ class UpdateDBPipeline:
         upload_result = await self.uploader.insert_chunks(
             chunks=chunks,
             embeddings=embeddings,
+            document_id = document_id,
             url=crawled_data["url"]
         )
 
@@ -78,7 +79,7 @@ class UpdateDBPipeline:
         logger.info(f"Pipeline completed for {crawled_data['url']}: {result['chunks_uploaded']} chunks")
         return result
 
-    async def process(self, urls: list[str]) -> list[dict]:
+    async def process_multiple_urls(self, urls: list[str]) -> list[dict]:
         """
         Process single or multiple URLs asynchronously.
 
@@ -91,7 +92,7 @@ class UpdateDBPipeline:
 
         # Process all URLs concurrently
         results = await asyncio.gather(
-            *[self.pipeline(url) for url in urls],
+            *[self.process_single_url(url) for url in urls],
             #return_exceptions=True  # Continue even if some URLs fail #todo set it as True
         )
 
@@ -135,10 +136,15 @@ async def main():
         "https://docs.langchain.com/oss/python/langchain/structured-output",
         "https://docs.langchain.com/oss/python/langchain/middleware/built-in",
         "https://docs.langchain.com/oss/python/langchain/overview",
+        "https://docs.langchain.com/oss/python/langchain/streaming",
+        "https://docs.langchain.com/oss/python/langchain/guardrails",
+        "https://docs.langchain.com/oss/python/langchain/runtime",
+        "https://docs.langchain.com/oss/python/langchain/context-engineering",
+        "https://docs.langchain.com/oss/python/langchain/human-in-the-loop",
     ]
 
     # Process all URLs concurrently
-    concurrent_results = await pipeline.process(urls)
+    concurrent_results = await pipeline.process_multiple_urls(urls)
 
     logger.info(f"Total processed: {len(concurrent_results)} URLs")
 

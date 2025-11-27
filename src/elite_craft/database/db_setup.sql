@@ -2,7 +2,7 @@
   create extension if not exists vector;
 
   -- Table 1: Crawled Site's Metadata
-  create table metadata (
+  create table documents (
       id serial primary key,                  -- Auto-incrementing primary key
       url varchar not null unique,       -- identifier
       source varchar not null,
@@ -12,14 +12,14 @@
   -- Table 2: Chunks with Embeddings
   create table chunks (
       id serial primary key,                  -- Auto-incrementing primary key
-      url varchar not null references metadata(url) on delete cascade,  -- identifier
-      chunk_number integer not null,
+      document_id integer not null,
+      chunk_id_in_document integer not null,
       content text not null,
       embedding vector(768) not null,
       created_at timestamp with time zone default timezone('utc'::text, now()) not null,
 
       -- Prevent duplicate chunks for same article
-      unique(url, chunk_number)
+      unique(document_id, chunk_id_in_document)
   );
 
   -- Function to search chunks with metadata
@@ -46,12 +46,12 @@
       c.url,
       c.chunk_number,
       c.content,
-      m.source,
-      m.crawled_time,
+      d.source,
+      d.crawled_time,
       1 - (c.embedding <=> query_embedding) as similarity
     from chunks c
-    join metadata m on c.url = m.url
-    where (source_filter is null or m.source = source_filter)
+    join documents d on c.url = d.url
+    where (source_filter is null or d.source = source_filter)
     order by c.embedding <=> query_embedding
     limit match_count;
   end;

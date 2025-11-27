@@ -68,7 +68,11 @@ async def crawl(url: str) -> dict:
         logger.info(f"[CRAWL] Response received for: {url}, content length: {len(response.markdown)} chars")
 
     # Extract source name from URL
-    source = _extract_source(url)
+    try:
+        source = _extract_source(url)
+    except ValueError as e:
+        logger.warning(f"[CRAWL] No source found for: {e}")
+        source = "UNKNOWN"
 
     # Get current time in configured timezone as ISO format string
     crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()

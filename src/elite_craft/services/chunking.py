@@ -3,7 +3,10 @@ from docling.document_converter import DocumentConverter
 from docling.datamodel.base_models import InputFormat
 import logging
 
+from src.config import settings
+
 logger = logging.getLogger(__name__)
+logger.setLevel(level=settings.LOGGING_LEVEL)
 
 class Chunker:
     """
@@ -14,6 +17,7 @@ class Chunker:
         self.converter = DocumentConverter()
         self.chunker = HybridChunker()
 
+    #@classmethod you don't need to create instance by using this decorator
     def chunk(self, content: str, url:str,) -> list[str]:
         """
         Convert source content to document and chunk it.
@@ -38,5 +42,5 @@ class Chunker:
         # Convert Docling Document chunks to string format
         chunks = [chunk.text for chunk in chunk_iter]
 
-        logger.info(f"[CHUNK COMPLETE] Generated chunks for {url}")
+        logger.log(msg="[CHUNK COMPLETE] Generated chunks for {url}", level=logging.INFO)
         return chunks

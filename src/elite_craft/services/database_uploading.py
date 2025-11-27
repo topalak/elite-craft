@@ -7,6 +7,7 @@ from supabase import create_client, Client
 
 BODY_PREVIEW_END: Final = 3000
 logger = logging.getLogger(__name__)
+logger.setLevel(level=settings.LOGGING_LEVEL)
 
 class SupabaseUploadService:
     """
@@ -28,7 +29,7 @@ class SupabaseUploadService:
         self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
 
 
-    async def insert_metadata(self, content_to_insert: dict) -> None:
+    async def insert_document(self, content_to_insert: dict) -> int: #todo check what data type method returns
         """
         Insert or update document metadata using upsert.
 
@@ -47,19 +48,23 @@ class SupabaseUploadService:
 
         # Use upsert - updates if exists, inserts if new
         # Wrap sync Supabase call in thread to not block event loop
-        await asyncio.to_thread(
-            self.supabase_client.table('metadata')
+        response = await asyncio.to_thread(
+            self.supabase_client.table('documents')
             .upsert(db_record, on_conflict='url')
             .execute
         )
 
-        logger.info(f"[DB METADATA COMPLETE] Metadata upserted for: {url}")
+        idx = response.data[0]['id']
+        logger.log(msg=f"[DB METADATA COMPLETE] Metadata upserted for: {url} with {idx}", level=logging.INFO)
+
+        return idx
 
     async def insert_chunks(
             self,
             chunks: list[str],
             embeddings: list[list[float]],
-            url: str
+            document_id: int,
+            url:str,
     ) -> dict:
         """
         Insert text chunks with embeddings in batches.
@@ -71,7 +76,8 @@ class SupabaseUploadService:
         Args:
             chunks: List of text chunks from document
             embeddings: List of embedding vectors
-            url: URL of source document (foreign key to metadata table)
+            document_id: Unique document id
+            url: URL to insert chunk for
 
         Returns:
             Dict with insertion statistics:
@@ -92,24 +98,24 @@ class SupabaseUploadService:
 
             # Check if chunks exist for this URL
             existing_chunks = await asyncio.to_thread(
-                self.supabase_client.table('chunks').select('id').eq('url', url).execute
+                self.supabase_client.table('chunks').select('id').eq('document_id', document_id).execute
             )
 
             if existing_chunks.data:
-                logger.info(f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}")
+                logger.log(msg=f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}", level=logging.INFO)
                 await asyncio.to_thread(
-                    self.supabase_client.table('chunks').delete().eq('url', url).execute
+                    self.supabase_client.table('chunks').delete().eq('document_id', document_id).execute
                 )
-                logger.info(f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}")
+                logger.log(msg=f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}", level=logging.INFO)
 
             chunk_records = [
                 {
-                    "url": url,
-                    "chunk_number": chunk_number,
+                    "document_id": document_id,
+                    "chunk_id_in_document": chunk_id_in_document,
                     "content": str(chunk_text),
                     "embedding": embedding
                 }
-                for chunk_number, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
+                for chunk_id_in_document, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
             ]
 
             for i in range(0, len(chunk_records), self.batch_size):
@@ -120,9 +126,10 @@ class SupabaseUploadService:
                     self.supabase_client.table('chunks').insert(batch).execute
                 )
 
-            logger.info(f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}")
+            logger.log(msg=f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}", level=logging.INFO)
 
             return {
                 "total_chunks": len(chunk_records),
                 "success": True
             }
+            #todo add timestamp inserted_add and update_add ragnar "https://github.com/bgunyel/ragnar/blob/main/src/ragnar/agents/utils.py"

@@ -36,7 +36,6 @@ class Embedder:
         Returns:
             List of embedding vectors (each vector is a list of floats)
         """
-        logger.info(f"[EMBED START] Starting embedding for {len(chunks)} chunks")
 
         embeddings = self.embedding_model.embed_documents(chunks)
 
