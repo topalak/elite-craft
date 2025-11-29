@@ -2,13 +2,13 @@ import asyncio
 import logging
 from typing import TypedDict
 
+from config import settings
 from elite_craft.services.chunking import Chunker
 from elite_craft.services.crawling import crawl
 from elite_craft.services.database_uploading import SupabaseUploadService
 from elite_craft.services.embedding import Embedder
 
 logger = logging.getLogger(__name__)
-
 
 class PipelineResult(TypedDict):
     """
@@ -115,16 +115,13 @@ class UpdateDBPipeline:
 
 
 async def main():
-    from src.config import settings
+    from config import settings
 
     """
         Executes update db pipeline asynchronously.
     """
-    
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+
+    logger.setLevel(level=settings.LOGGING_LEVEL)
 
     pipeline = UpdateDBPipeline(embedding_model='embeddinggemma',
                                 supabase_url=settings.SUPABASE_URL,

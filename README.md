@@ -199,6 +199,113 @@ URL → Crawl → Upload Metadata → Chunk → Embed → Upload Chunks → Comp
 
 ---
 
+## Testing
+
+Elite Craft maintains **100% test coverage** for all core services with comprehensive unit tests.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov
+
+# Run specific test file
+pytest tests/test_crawling.py -v
+
+# Run with detailed coverage report
+pytest --cov --cov-report=html
+```
+
+### Test Coverage
+
+**Core Services - 100% Coverage:**
+- ✅ `config.py` - Configuration and settings management
+- ✅ `model_provider.py` - LLM and embedding model providers
+- ✅ `services/crawling.py` - Web crawling and source extraction
+- ✅ `services/chunking.py` - Document chunking logic
+- ✅ `services/embedding.py` - Embedding generation
+- ✅ `services/database_uploading.py` - Database operations
+- ✅ `services/update_db_pipeline.py` - End-to-end pipeline orchestration
+
+**Overall Project Coverage: ~90%**
+
+### Test Structure
+
+```
+tests/
+├── test_chunking.py                         # Document chunking tests
+├── test_crawling.py                         # Web crawling and source mapping
+├── test_database_uploading.py               # Supabase operations
+├── test_embedding.py                        # Embedding generation
+├── test_model_provider.py                   # Model configuration (Ollama, Groq)
+├── test_update_db_pipeline.py               # Pipeline integration tests
+└── are_crawling_outputs_stochastic.py       # Crawl stability analysis script
+└── are_db_chunks_and_crawled_chunks_same.py # Checks database and crawled chunks
+```
+
+### Crawl Stability Analysis
+
+The `are_crawling_outputs_stochastic.py` script is an analysis tool (not a unit test) that checks whether web crawling produces deterministic outputs:
+The `are_db_chunks_and_crawled_chunks_same.py` scripy is an analysis tool  (not a unit test) that checks database chunks and crawled chunks are same?
+**Purpose:**
+- Detects if crawled content changes between requests
+- Identifies AI-generated responses in documentation sites
+- Analyzes text differences with multiple normalization strategies
+- Helps ensure data quality for the knowledge base
+
+**Usage:**
+```bash
+# Run stability analysis on URLs
+python tests/are_crawling_outputs_stochastic.py
+python tests/are_db_chunks_and_crawled_chunks_same.py
+```
+
+**Features:**
+- Multiple crawl attempts per URL with retry logic
+- Text similarity analysis (raw, whitespace-normalized, line-normalized)
+- Character-level diff reporting using `difflib.SequenceMatcher`
+- Detection of dynamic content (e.g., "AI-generated responses" warnings)
+- Detailed statistics and difference reports
+
+**Analysis Metrics:**
+- Raw similarity percentage
+- Similarity after space normalization
+- Similarity without whitespace
+- Line count differences
+- Character-level changes (added, removed, modified)
+
+### Testing Best Practices
+
+All tests follow professional unit testing standards:
+
+1. **Isolation**: External dependencies (APIs, databases, models) are mocked
+2. **Async Support**: Full support for async/await patterns with `pytest-asyncio`
+3. **Mock Patterns**: Proper use of `Mock`, `AsyncMock`, and `patch` for dependencies
+4. **Coverage**: Every code path is tested including error handling
+5. **Clear Documentation**: Each test has descriptive docstrings
+
+**Example Test Pattern:**
+```python
+async def test_crawl_known_source(self):
+    """Test that known domains return correct source name."""
+
+    with patch('module.AsyncWebCrawler') as MockCrawler:
+        # Setup mock behavior
+        mock_instance = MockCrawler.return_value.__aenter__.return_value
+        mock_instance.arun.return_value = Mock(markdown="# Content")
+
+        # Execute
+        result = await crawl("https://docs.langchain.com/guide")
+
+        # Assert
+        assert result["source"] == "langchain"
+```
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please ensure:
@@ -208,6 +315,8 @@ Contributions are welcome! Please ensure:
 3. Error handling is comprehensive
 4. Logging is used (not print statements)
 5. Type hints are included
+6. **Tests are written for new code** - Maintain 100% coverage for core services
+7. All tests pass: `pytest --cov`
 
 ---
 

@@ -6,7 +6,7 @@ from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
 from urllib.parse import urlparse
 
-from src.config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -84,29 +84,3 @@ async def main():
 if __name__ == '__main__':
     # Run the async main function using event loop
     asyncio.run(main())
-
-    """
-    fetch = fetch_chunks_from_document_id(document_id=1)
-    print(fetch)
-
-    async def process(url:str,):
-
-        response = await crawl(url=url)
-        print(response)
-        chunker = Chunker()
-        chunks = chunker.chunk(content=response['body_text'], url=url)
-
-        return chunks
-
-
-    response = asyncio.run(process("https://docs.langchain.com/oss/python/langchain/middleware/built-in "))
-    #"https://docs.langchain.com/oss/python/langchain/tools"
-
-    for i, chunk in enumerate(response):
-        a = fetch[i]
-        if chunk == a:
-            print(f'ossuruk okay {i}')
-        else:
-            print(f"efe mal {i}")
-            print(chunk)
-    """

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100
 
+    # Database "body_preview" column's preview size
+    BODY_PREVIEW_END: int = 3000
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_file_encoding="utf-8",

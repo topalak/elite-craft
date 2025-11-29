@@ -2,7 +2,7 @@
 Unit tests for ModelConfig.
 """
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from elite_craft.model_provider import ModelConfig
 
