@@ -1,6 +1,5 @@
 from datetime import datetime
 import logging
-import asyncio
 from typing import Final
 
 from crawl4ai import AsyncWebCrawler
@@ -10,7 +9,6 @@ from urllib.parse import urlparse
 from src.config import settings
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=settings.LOGGING_LEVEL)
 
 # Map documentation domains to source names
 SOURCE_MAPPING: Final = {
@@ -38,7 +36,7 @@ def _extract_source(url: str) -> str:
     if domain in SOURCE_MAPPING:
         return SOURCE_MAPPING[domain]
     else:
-        raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING")
+        raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING, might be invalid domain")
 
 async def crawl(url: str) -> dict:
     """
@@ -57,9 +55,7 @@ async def crawl(url: str) -> dict:
     browser_config = BrowserConfig()
     run_config = CrawlerRunConfig()
 
-    async with AsyncWebCrawler(
-            config=browser_config
-            ) as crawler:
+    async with AsyncWebCrawler(config=browser_config) as crawler:
         response = await crawler.arun(
             url=url,
             config=run_config

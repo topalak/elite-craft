@@ -9,6 +9,7 @@ from elite_craft.services.embedding import Embedder
 
 logger = logging.getLogger(__name__)
 
+
 class PipelineResult(TypedDict):
     """
     Types of single pipeline's result
@@ -71,7 +72,9 @@ class UpdateDBPipeline:
             url=crawled_data["url"]
         )
 
-        result: PipelineResult =  {
+        result: PipelineResult = {
+            "url": crawled_data["url"],
+            "source": crawled_data["source"],
             "chunks_uploaded": upload_result["total_chunks"],
             "success": True
         }
