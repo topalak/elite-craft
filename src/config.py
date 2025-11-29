@@ -2,8 +2,7 @@ import logging
 import os
 import datetime
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))  #__file__ = current file
@@ -28,10 +27,11 @@ class Settings(BaseSettings):
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100
 
-    class Config:
-        extra = "ignore"  # Ignore extra environment variables
+    model_config = SettingsConfigDict(
+        extra="ignore",
+        env_file_encoding="utf-8",
+        env_file=os.path.join(ENV_FILE_DIR, '.env')
+    )
 
-        env_file_encoding = "utf-8"
-        env_file = os.path.join(ENV_FILE_DIR, '.env')
 
 settings = Settings()
