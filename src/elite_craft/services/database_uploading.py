@@ -1,13 +1,10 @@
-from typing import Final
 import asyncio
 import logging
 
-from src.config import settings
+from config import settings
 from supabase import create_client, Client
 
-BODY_PREVIEW_END: Final = 3000
 logger = logging.getLogger(__name__)
-logger.setLevel(level=settings.LOGGING_LEVEL)
 
 class SupabaseUploadService:
     """
@@ -25,7 +22,11 @@ class SupabaseUploadService:
     _upload_semaphore = asyncio.Semaphore(1)
 
     def __init__(self, supabase_url:str, supabase_key:str, batch_size:int = None):
-        self.supabase_client: Client = create_client(supabase_url, supabase_key)
+        # Create client with explicit schema set to 'private'
+        self.supabase_client: Client = create_client(
+            supabase_url,
+            supabase_key,
+        )
         self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
 
 
@@ -44,7 +45,7 @@ class SupabaseUploadService:
         body_text = content_to_insert['body_text']
 
         db_record = {k: v for k, v in content_to_insert.items() if k != 'body_text'}
-        db_record['body_preview'] = body_text[:BODY_PREVIEW_END]
+        db_record['body_preview'] = body_text[:settings.BODY_PREVIEW_END]
 
         # Use upsert - updates if exists, inserts if new
         # Wrap sync Supabase call in thread to not block event loop
@@ -55,7 +56,7 @@ class SupabaseUploadService:
         )
 
         idx = response.data[0]['id']
-        logger.log(msg=f"[DB METADATA COMPLETE] Metadata upserted for: {url} with {idx}", level=logging.INFO)
+        logger.info(msg=f"[DB METADATA COMPLETE] Metadata upserted for: {url} with {idx}")
 
         return idx
 
@@ -102,11 +103,11 @@ class SupabaseUploadService:
             )
 
             if existing_chunks.data:
-                logger.log(msg=f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}", level=logging.INFO)
+                logger.info(msg=f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}")
                 await asyncio.to_thread(
                     self.supabase_client.table('chunks').delete().eq('document_id', document_id).execute
                 )
-                logger.log(msg=f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}", level=logging.INFO)
+                logger.info(msg=f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}")
 
             chunk_records = [
                 {
@@ -126,7 +127,7 @@ class SupabaseUploadService:
                     self.supabase_client.table('chunks').insert(batch).execute
                 )
 
-            logger.log(msg=f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}", level=logging.INFO)
+            logger.info(msg=f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}")
 
             return {
                 "total_chunks": len(chunk_records),

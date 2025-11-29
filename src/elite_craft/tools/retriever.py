@@ -10,7 +10,10 @@ class Retriever:
     def __init__(self, supabase_url: str, supabase_api_key: str, embedding_model_name: str):
         embedding_model_config = ModelConfig(model=embedding_model_name)
         self.embedding_model = embedding_model_config.get_embedding()
-        self.supabase_client: Client = create_client(supabase_url, supabase_api_key)
+        self.supabase_client: Client = create_client(
+            supabase_url,
+            supabase_api_key,
+        )
 
     def retrieve_relevant_chunks(self, query: str, match_count: int = 5, source_filter: str = None) -> list[dict]:
         """

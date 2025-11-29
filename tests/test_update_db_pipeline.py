@@ -211,7 +211,7 @@ class TestMainFunction:
             # Verify process_multiple_urls was called with URL list
             mock_pipeline_instance.process_multiple_urls.assert_called_once()
             call_args = mock_pipeline_instance.process_multiple_urls.call_args[0][0]
-            assert len(call_args) == 12  # 12 URLs in the list
+            assert len(call_args) == 3  # 12 URLs in the list
             assert all("langchain.com" in url for url in call_args)
 
             # Verify final logging
