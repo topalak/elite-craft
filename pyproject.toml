@@ -35,3 +35,8 @@ addopts = [
     "--verbose",
     "--tb=short",
 ]
+
+# Filter warnings from third-party libraries
+filterwarnings = [
+    "ignore::pydantic.PydanticDeprecatedSince20",
+]

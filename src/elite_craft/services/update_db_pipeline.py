@@ -96,7 +96,7 @@ class UpdateDBPipeline:
         # Process all URLs concurrently
         results = await asyncio.gather(
             *[self.process_single_url(url) for url in urls],
-            #return_exceptions=True  # Continue even if some URLs fail #todo set it as True
+            return_exceptions=True  # Continue even if some URLs fail
         )
 
         # Count results
@@ -154,5 +154,5 @@ async def main():
     return concurrent_results
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())
