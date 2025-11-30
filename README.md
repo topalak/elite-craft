@@ -11,27 +11,39 @@ An AI-powered assistant that helps developers build and enhance agentic AI proje
 ```
 elite-craft/
 ├── src/
-│   ├── config.py                    # Pydantic settings management
-│   ├── main_dev.py                  # Development entry point
+│   ├── config.py                              # Pydantic settings management
+│   ├── main_dev.py                            # Development entry point for Crafter agent
 │   └── elite_craft/
 │       ├── __init__.py
-│       ├── model_provider.py        # LLM & embedding model configuration
-│       ├── services/                # Core pipeline services
-│       │   ├── crawling.py          # Async web crawling (Crawl4AI)
-│       │   ├── chunking.py          # Document chunking (Docling)
-│       │   ├── embedding.py         # Text embeddings (Ollama/HuggingFace)
-│       │   ├── database_uploading.py # Supabase operations
-│       │   └── update_db_pipeline.py # End-to-end pipeline orchestration
-│       ├── database/
-│       │   └── db_setup.sql         # PostgreSQL schema with pgvector
-│       ├── tools/
-│       │   └── retriever.py         # Semantic search retriever
-│       └── agent/
-│           ├── crafter_agent.py     # Main agent class
-│           └── state.py             # Agent state management
-├── .env.example                     # Environment variables template
-├── CLAUDE.md                        # Python coding standards & conventions
-├── pyproject.toml                   # Project dependencies
+│       ├── model_provider.py                  # LLM & embedding model configuration
+│       ├── agent/                             # Agent implementation
+│       │   ├── __init__.py
+│       │   ├── crafter_agent.py               # Main RAG agent with LLM and retriever
+│       │   └── state.py                       # Agent state management (placeholder)
+│       ├── tools/                             # Agent tools
+│       │   ├── __init__.py
+│       │   └── retriever.py                   # Semantic search retriever with pgvector
+│       ├── services/                          # Core pipeline services
+│       │   ├── __init__.py
+│       │   ├── crawling.py                    # Async web crawling (Crawl4AI)
+│       │   ├── chunking.py                    # Document chunking (Docling)
+│       │   ├── embedding.py                   # Text embeddings (Ollama/HuggingFace)
+│       │   ├── database_uploading.py          # Supabase upload operations
+│       │   └── update_db_pipeline.py          # End-to-end ingestion pipeline
+│       └── database/                          # Database schema
+│           ├── db_table_setup.sql             # PostgreSQL tables with pgvector
+│           └── db_cosine_similarity_function.sql  # Semantic search function
+├── tests/                                     # Unit tests (100% coverage)
+│   ├── test_chunking.py
+│   ├── test_crawling.py
+│   ├── test_database_uploading.py
+│   ├── test_embedding.py
+│   ├── test_model_provider.py
+│   ├── test_update_db_pipeline.py
+│   ├── are_crawling_outputs_stochastic.py        # Crawl stability analysis
+│   └── are_db_chunks_and_crawled_chunks_same.py  # Database validation
+├── .env.example                                  # Environment variables template
+├── pyproject.toml                             
 └── README.md
 ```
 
