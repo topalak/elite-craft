@@ -25,16 +25,19 @@ class SupabaseUploadService:
     # Set to 1 because each upload does multiple DB operations (SELECT, DELETE, INSERT batches)
     _upload_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, supabase_url: str | AnyUrl, supabase_key: str, batch_size:int = None):
+    def __init__(self, supabase_url: str,
+                 supabase_key: str,
+                 batch_size:int = None):
         # Create client with explicit schema set to 'private'
         self.supabase_client: Client = create_client(
             supabase_url,
             supabase_key,
         )
-        self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
+        self.batch_size = batch_size if batch_size is not None \
+            else settings.DB_UPLOAD_BATCH_SIZE
 
 
-    async def insert_document(self, content_to_insert: CrawledData) -> int: #todo check what data type that method returns
+    async def insert_document(self, content_to_insert: CrawledData) -> int:
         """
         Insert or update document metadata using upsert.
 
@@ -45,15 +48,15 @@ class SupabaseUploadService:
             None
         """
 
-        url = content_to_insert['url']
-        body_text = content_to_insert[GeneralEnums.BODY_TEXT]
+        url = content_to_insert.url
+        body_text = content_to_insert.body_text
 
-        db_record = {k: v for k, v in content_to_insert.items() if k != GeneralEnums.BODY_TEXT}
+        db_record = content_to_insert.model_dump(mode='json', exclude={GeneralEnums.BODY_TEXT})
         db_record[GeneralEnums.BODY_PREVIEW] = body_text[:settings.BODY_PREVIEW_END]
 
         # Use upsert - updates if exists, inserts if new
         # Wrap sync Supabase call in thread to not block event loop
-        response = await asyncio.to_thread(   #todo check what items does db_record has? it shouldn't contains "body_text", probably wont contain btw
+        response = await asyncio.to_thread(
             self.supabase_client.table(GeneralEnums.DOCUMENTS)
             .upsert(db_record, on_conflict='url')
             .execute

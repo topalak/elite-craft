@@ -19,8 +19,7 @@ class Chunker:
         self.converter = DocumentConverter()
         self.chunker = HybridChunker()
 
-    #@classmethod you don't need to create instance by using this decorator
-    def chunk(self, content: str, url:str | AnyUrl) -> list[str]:  #todo I dont want to pass AnyUrl for every time I just defined it crawling process. When I am passing here url via crawled_data.url, the chunk method warns "expected str get AnyUrl. I don't want to define url as str or AnyUrl each time, or should I? I don't know which one is better?
+    def chunk(self, content: str, url:str) -> list[str]:
         """
         Convert source content to document and chunk it.
 
