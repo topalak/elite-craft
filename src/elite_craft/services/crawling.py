@@ -32,11 +32,7 @@ def _extract_source(url: str) -> str:
         ValueError: If domain is not in SOURCE_MAPPING
     """
     parsed = AnyUrl(url)
-    #use model json here to extract the domain
-    # todo pass url as AnyUrl and parse it inside of the method instead of using urlparser
-
-    parsed = urlparse(url)
-    domain = parsed.netloc
+    domain = parsed.host
 
     if domain in SOURCE_MAPPING:
         return SOURCE_MAPPING[domain]
