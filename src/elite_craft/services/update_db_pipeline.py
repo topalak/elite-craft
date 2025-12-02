@@ -12,10 +12,18 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDBPipeline:
-    def __init__(self, embedding_model:str, supabase_url:str, supabase_key:str):
+    def __init__(
+        self,
+        embedding_model:str,
+        supabase_url:str,
+        supabase_key:str
+    ):
         self.chunker = Chunker()
         self.embedder = Embedder(model=embedding_model)
-        self.uploader = SupabaseUploadService(supabase_url=supabase_url, supabase_key=supabase_key)
+        self.uploader = SupabaseUploadService(
+            supabase_url=supabase_url,
+            supabase_key=supabase_key
+        )
 
 
     async def process_single_url(self, url: str) -> PipelineResults:
@@ -46,14 +54,14 @@ class UpdateDBPipeline:
         chunks = await asyncio.to_thread(
             self.chunker.chunk,
             content=crawled_data.body_text,
-            url=crawled_data.url,
+            url=url,
         )
 
         # Step 4: Generate embeddings (GPU-bound - run in thread to not block event loop)
         embeddings = await asyncio.to_thread(
             self.embedder.embed,
             chunks=chunks,
-            url=crawled_data.url
+            url=url
         )
 
         # Step 5: Upload chunks with embeddings
@@ -61,11 +69,11 @@ class UpdateDBPipeline:
             chunks=chunks,
             embeddings=embeddings,
             document_id = document_id,
-            url=crawled_data.url
+            url=url
         )
 
         result = PipelineResults(
-            url = crawled_data.url,
+            url = url,
             source = crawled_data.source,
             chunks_uploaded = upload_result["total_chunks"],
             success = True
@@ -92,7 +100,7 @@ class UpdateDBPipeline:
         )
 
         # Count results
-        successful = [r for r in results if isinstance(r, dict) and r.get("success")]
+        successful = [r for r in results if isinstance(r, PipelineResults) and r.success]
         failed = [r for r in results if isinstance(r, Exception)]
 
         # Log results
@@ -115,10 +123,11 @@ async def main():
 
     logger.setLevel(level=settings.LOGGING_LEVEL)
 
-    pipeline = UpdateDBPipeline(embedding_model='embeddinggemma',
-                                supabase_url=settings.SUPABASE_URL,
-                                supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
-                                )
+    pipeline = UpdateDBPipeline(
+        embedding_model='embeddinggemma',
+        supabase_url=settings.SUPABASE_URL,
+        supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+    )
 
     urls = [
         "https://docs.langchain.com/oss/python/langchain/agents",
