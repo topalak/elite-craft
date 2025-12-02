@@ -1,8 +1,12 @@
 import asyncio
 import logging
 
-from config import settings
+from pydantic import AnyUrl
 from supabase import create_client, Client
+
+from config import settings
+from elite_craft.enums import GeneralEnums
+from elite_craft.services.schemas import CrawledData
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,7 @@ class SupabaseUploadService:
     # Set to 1 because each upload does multiple DB operations (SELECT, DELETE, INSERT batches)
     _upload_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, supabase_url:str, supabase_key:str, batch_size:int = None):
+    def __init__(self, supabase_url: str | AnyUrl, supabase_key: str, batch_size:int = None):
         # Create client with explicit schema set to 'private'
         self.supabase_client: Client = create_client(
             supabase_url,
@@ -30,7 +34,7 @@ class SupabaseUploadService:
         self.batch_size = batch_size if batch_size is not None else settings.DB_UPLOAD_BATCH_SIZE
 
 
-    async def insert_document(self, content_to_insert: dict) -> int: #todo check what data type method returns
+    async def insert_document(self, content_to_insert: CrawledData) -> int: #todo check what data type that method returns
         """
         Insert or update document metadata using upsert.
 
@@ -42,15 +46,15 @@ class SupabaseUploadService:
         """
 
         url = content_to_insert['url']
-        body_text = content_to_insert['body_text']
+        body_text = content_to_insert[GeneralEnums.BODY_TEXT]
 
-        db_record = {k: v for k, v in content_to_insert.items() if k != 'body_text'}
-        db_record['body_preview'] = body_text[:settings.BODY_PREVIEW_END]
+        db_record = {k: v for k, v in content_to_insert.items() if k != GeneralEnums.BODY_TEXT}
+        db_record[GeneralEnums.BODY_PREVIEW] = body_text[:settings.BODY_PREVIEW_END]
 
         # Use upsert - updates if exists, inserts if new
         # Wrap sync Supabase call in thread to not block event loop
-        response = await asyncio.to_thread(
-            self.supabase_client.table('documents')
+        response = await asyncio.to_thread(   #todo check what items does db_record has? it shouldn't contains "body_text", probably wont contain btw
+            self.supabase_client.table(GeneralEnums.DOCUMENTS)
             .upsert(db_record, on_conflict='url')
             .execute
         )
@@ -65,7 +69,8 @@ class SupabaseUploadService:
             chunks: list[str],
             embeddings: list[list[float]],
             document_id: int,
-            url:str,
+            url: str | AnyUrl,
+            # add here crawled data model
     ) -> dict:
         """
         Insert text chunks with embeddings in batches.
@@ -99,13 +104,13 @@ class SupabaseUploadService:
 
             # Check if chunks exist for this URL
             existing_chunks = await asyncio.to_thread(
-                self.supabase_client.table('chunks').select('id').eq('document_id', document_id).execute
+                self.supabase_client.table(GeneralEnums.CHUNKS).select('id').eq('document_id', document_id).execute
             )
 
             if existing_chunks.data:
                 logger.info(msg=f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}")
                 await asyncio.to_thread(
-                    self.supabase_client.table('chunks').delete().eq('document_id', document_id).execute
+                    self.supabase_client.table(GeneralEnums.CHUNKS).delete().eq('document_id', document_id).execute
                 )
                 logger.info(msg=f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}")
 
@@ -116,7 +121,8 @@ class SupabaseUploadService:
                     "content": str(chunk_text),
                     "embedding": embedding
                 }
-                for chunk_id_in_document, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
+                #strict=True raises error if lengths differ, we validate it before but this makes more robust
+                for chunk_id_in_document, (chunk_text, embedding) in enumerate(zip(chunks, embeddings, strict=True))
             ]
 
             for i in range(0, len(chunk_records), self.batch_size):
@@ -124,7 +130,7 @@ class SupabaseUploadService:
 
                 # Wrap sync Supabase call in thread to not block event loop
                 await asyncio.to_thread(
-                    self.supabase_client.table('chunks').insert(batch).execute
+                    self.supabase_client.table(GeneralEnums.CHUNKS).insert(batch).execute
                 )
 
             logger.info(msg=f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}")
@@ -133,4 +139,3 @@ class SupabaseUploadService:
                 "total_chunks": len(chunk_records),
                 "success": True
             }
-            #todo add timestamp inserted_add and update_add ragnar "https://github.com/bgunyel/ragnar/blob/main/src/ragnar/agents/utils.py"
