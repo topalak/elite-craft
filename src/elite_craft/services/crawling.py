@@ -1,12 +1,14 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Final
+from urllib.parse import urlparse
 
 from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
-from urllib.parse import urlparse
+from pydantic import AnyUrl
 
 from config import settings
+from elite_craft.services.schemas import CrawledData
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,6 @@ SOURCE_MAPPING: Final = {
     "python.langchain.com": "langchain",
     #"docling-project.github.io": "docling",
 }
-
 def _extract_source(url: str) -> str:
     """
     Extract source name from documentation URL.
@@ -30,6 +31,10 @@ def _extract_source(url: str) -> str:
     Raises:
         ValueError: If domain is not in SOURCE_MAPPING
     """
+    parsed = AnyUrl(url)
+    #use model json here to extract the domain
+    # todo pass url as AnyUrl and parse it inside of the method instead of using urlparser
+
     parsed = urlparse(url)
     domain = parsed.netloc
 
@@ -38,7 +43,7 @@ def _extract_source(url: str) -> str:
     else:
         raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING, might be invalid domain")
 
-async def crawl(url: str) -> dict:
+async def crawl(url: str) -> CrawledData:
     """
     Crawl a URL and return structured data for database insertion.
 
@@ -73,13 +78,12 @@ async def crawl(url: str) -> dict:
     # Get current time in configured timezone as ISO format string
     crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
-    result = {
-        "body_text": response.markdown,
-        "crawled_time": crawled_time,
-        "url": url,
-        "source": source
-    }
 
-    return result
+    return CrawledData (
+        body_text = response.markdown,
+        crawled_time = crawled_time,
+        url = AnyUrl(url),
+        source =  source
+    )
 
 

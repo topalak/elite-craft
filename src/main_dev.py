@@ -1,7 +1,7 @@
 import logging
 
-from elite_craft.agent.crafter_agent import Crafter
 from config import settings
+from elite_craft.agent.crafter_agent import Crafter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=settings.LOGGING_LEVEL)

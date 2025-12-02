@@ -1,7 +1,7 @@
 from typing import Final
 
-from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage, BaseMessage
+from pydantic import BaseModel
 from rich.console import Console
 from rich.markdown import Markdown
 
