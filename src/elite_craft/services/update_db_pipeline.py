@@ -7,16 +7,23 @@ from elite_craft.services.database_uploading import SupabaseUploadService
 from elite_craft.services.embedding import Embedder
 from elite_craft.services.schemas import PipelineResults
 
+
 logger = logging.getLogger(__name__)
 
 
-
 class UpdateDBPipeline:
+    """
+    End-to-end pipeline for updating documentation database.
+
+    Orchestrates the complete flow: crawling → chunking → embedding →
+    database upload. Supports concurrent processing of multiple URLs.
+    """
+
     def __init__(
         self,
-        embedding_model:str,
-        supabase_url:str,
-        supabase_key:str
+        embedding_model: str,
+        supabase_url: str,
+        supabase_key: str
     ):
         self.chunker = Chunker()
         self.embedder = Embedder(model=embedding_model)
@@ -39,25 +46,20 @@ class UpdateDBPipeline:
 
         # Step 1: Crawl and get structured data
         crawled_data = await crawl(url=url)
-        # crawled_data = {
-        #     "body_text": str, #content
-        #     "crawled_time": datetime,
-        #     "url": str,
-        #     "source": str
-        # }
 
         # Step 2: Upload metadata to database
-        document_id = await self.uploader.insert_document(crawled_data) #I promise to send you a CrawledDocument object.
-        # It guarantees that url is a string and crawled_time is a valid datetime.
+        document_id = await self.uploader.insert_document(crawled_data)
 
-        # Step 3: Chunk the document (CPU-bound - run in thread to not block event loop)
+        # Step 3: Chunk the document
+        # CPU-bound - run in thread to not block event loop
         chunks = await asyncio.to_thread(
             self.chunker.chunk,
             content=crawled_data.body_text,
             url=url,
         )
 
-        # Step 4: Generate embeddings (GPU-bound - run in thread to not block event loop)
+        # Step 4: Generate embeddings
+        # GPU-bound - run in thread to not block event loop
         embeddings = await asyncio.to_thread(
             self.embedder.embed,
             chunks=chunks,
@@ -68,18 +70,21 @@ class UpdateDBPipeline:
         upload_result = await self.uploader.insert_chunks(
             chunks=chunks,
             embeddings=embeddings,
-            document_id = document_id,
+            document_id=document_id,
             url=url
         )
 
         result = PipelineResults(
-            url = url,
-            source = crawled_data.source,
-            chunks_uploaded = upload_result["total_chunks"],
-            success = True
+            url=url,
+            source=crawled_data.source,
+            chunks_uploaded=upload_result["total_chunks"],
+            success=True
         )
 
-        logger.info(f"Pipeline completed for {result.url}: {result.chunks_uploaded} chunks")
+        logger.info(
+            f"Pipeline completed for {result.url}: "
+            f"{result.chunks_uploaded} chunks"
+        )
         return result
 
     async def process_multiple_urls(self, urls: list[str]) -> list[dict]:
@@ -100,11 +105,16 @@ class UpdateDBPipeline:
         )
 
         # Count results
-        successful = [r for r in results if isinstance(r, PipelineResults) and r.success]
+        successful = [
+            r for r in results
+            if isinstance(r, PipelineResults) and r.success
+        ]
         failed = [r for r in results if isinstance(r, Exception)]
 
         # Log results
-        logger.info(f"Processing complete: {len(successful)}/{len(urls)} successful")
+        logger.info(
+            f"Processing complete: {len(successful)}/{len(urls)} successful"
+        )
 
         if failed:
             logger.error(f"{len(failed)} URLs failed")
@@ -115,11 +125,8 @@ class UpdateDBPipeline:
 
 
 async def main():
+    """Execute update database pipeline asynchronously for testing."""
     from config import settings
-
-    """
-        Executes update db pipeline asynchronously.
-    """
 
     logger.setLevel(level=settings.LOGGING_LEVEL)
 

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 from elite_craft.services.database_uploading import SupabaseUploadService
-
+from elite_craft.services.schemas import CrawledData
 
 class TestInsertDocument:
     """Test the insert_document method."""
@@ -39,12 +39,12 @@ class TestInsertDocument:
             )
 
             # STEP 5: Prepare test data
-            content = {
-                "url": "https://docs.langchain.com/guide",
-                "source": "langchain",
-                "crawled_time": "2025-01-01T00:00:00",
-                "body_text": "A" * 5000  # Long text to test body_preview truncation
-            }
+            content: CrawledData = CrawledData(
+                url="https://docs.langchain.com/guide",
+                source="langchain",
+                crawled_time="2025-01-01T00:00:00",
+                body_text="A" * 5000  # Long text to test body_preview truncation
+            )
 
             # STEP 6: Call insert_document
             result = await service.insert_document(content)

@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 from typing import Final
-from urllib.parse import urlparse
 
 from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
@@ -10,14 +9,17 @@ from pydantic import AnyUrl
 from config import settings
 from elite_craft.services.schemas import CrawledData
 
+
 logger = logging.getLogger(__name__)
 
 # Map documentation domains to source names
 SOURCE_MAPPING: Final = {
     "docs.langchain.com": "langchain",
     "python.langchain.com": "langchain",
-    #"docling-project.github.io": "docling",
+    # "docling-project.github.io": "docling",
 }
+
+
 def _extract_source(url: str) -> str:
     """
     Extract source name from documentation URL.
@@ -37,7 +39,11 @@ def _extract_source(url: str) -> str:
     if domain in SOURCE_MAPPING:
         return SOURCE_MAPPING[domain]
     else:
-        raise ValueError(f"Domain '{domain}' is not in SOURCE_MAPPING, might be invalid domain")
+        raise ValueError(
+            f"Domain '{domain}' is not in SOURCE_MAPPING, "
+            f"might be invalid domain"
+        )
+
 
 async def crawl(url: str) -> CrawledData:
     """
@@ -62,7 +68,10 @@ async def crawl(url: str) -> CrawledData:
             config=run_config
         )
 
-        logger.info(f"[CRAWL] Response received for: {url}, content length: {len(response.markdown)} chars")
+        logger.info(
+            f"[CRAWL] Response received for: {url}, "
+            f"content length: {len(response.markdown)} chars"
+        )
 
     # Extract source name from URL
     try:
@@ -74,12 +83,9 @@ async def crawl(url: str) -> CrawledData:
     # Get current time in configured timezone as ISO format string
     crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
-
-    return CrawledData (
-        body_text = response.markdown,
-        crawled_time = crawled_time,
-        url = AnyUrl(url),
-        source =  source
+    return CrawledData(
+        body_text=response.markdown,
+        crawled_time=crawled_time,
+        url=AnyUrl(url),
+        source=source
     )
-
-

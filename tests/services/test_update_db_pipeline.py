@@ -3,10 +3,10 @@ Unit tests for Update DB Pipeline.
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 
 from elite_craft.services.update_db_pipeline import UpdateDBPipeline
-
+from elite_craft.services.schemas import CrawledData
 
 class TestProcessSingleUrl:
     """Test the process_single_url method."""
@@ -28,12 +28,12 @@ class TestProcessSingleUrl:
             # STEP 3: Setup mock return values for each step
 
             # Mock crawl (Step 1) - must be async!
-            mock_crawl.return_value = {
-                "body_text": "Sample markdown content",
-                "crawled_time": "2025-01-01T00:00:00",
-                "url": "https://docs.langchain.com/guide",
-                "source": "langchain"
-            }
+            mock_crawl.return_value = CrawledData(
+                body_text="Sample markdown content",
+                crawled_time="2025-01-01T00:00:00",
+                url="https://docs.langchain.com/guide",
+                source="langchain"
+            )
 
             # Mock insert_document (Step 2) - must be async!
             mock_uploader.insert_document = AsyncMock(return_value=123)
@@ -61,10 +61,10 @@ class TestProcessSingleUrl:
             result = await pipeline.process_single_url("https://docs.langchain.com/guide")
 
             # STEP 6: Assert result structure
-            assert result["url"] == "https://docs.langchain.com/guide"
-            assert result["source"] == "langchain"
-            assert result["chunks_uploaded"] == 3
-            assert result["success"] is True
+            assert result.url == "https://docs.langchain.com/guide"
+            assert result.source == "langchain"
+            assert result.chunks_uploaded == 3
+            assert result.success is True
 
             # STEP 7: Verify all steps were called
             mock_crawl.assert_called_once_with(url="https://docs.langchain.com/guide")
@@ -188,7 +188,6 @@ class TestMainFunction:
         """Test that main() function runs the pipeline correctly."""
 
         with patch('elite_craft.services.update_db_pipeline.UpdateDBPipeline') as MockPipeline, \
-             patch('elite_craft.services.update_db_pipeline.logging.basicConfig') as mock_logging, \
              patch('elite_craft.services.update_db_pipeline.logger') as mock_logger:
 
             # Setup mock pipeline instance
@@ -204,9 +203,6 @@ class TestMainFunction:
 
             # Verify pipeline was created
             MockPipeline.assert_called_once()
-
-            # Verify logging was configured
-            mock_logging.assert_called_once()
 
             # Verify process_multiple_urls was called with URL list
             mock_pipeline_instance.process_multiple_urls.assert_called_once()

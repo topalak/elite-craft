@@ -64,10 +64,10 @@ class TestCrawl:
             result = await crawl("https://docs.langchain.com/guide")
 
             # STEP 5: Assert the result is correct
-            assert result["source"] == "langchain"  # Known domain!
-            assert result["body_text"] == "# Fake LangChain content"
-            assert result["url"] == "https://docs.langchain.com/guide"
-            assert "crawled_time" in result
+            assert result.source == "langchain"  # Known domain!
+            assert result.body_text == "# Fake LangChain content"
+            assert str(result.url) == "https://docs.langchain.com/guide"
+            assert result.crawled_time is not None
 
     async def test_crawl_unknown_source(self):
         """Test crawl sets source to UNKNOWN for unrecognized domains."""
@@ -82,7 +82,7 @@ class TestCrawl:
             result = await crawl("https://unknown-docs.example.com/guide")
 
             # Assert: source should be "UNKNOWN"
-            assert result["source"] == "UNKNOWN"
-            assert result["body_text"] == "# Fake content from unknown domain"
-            assert result["url"] == "https://unknown-docs.example.com/guide"
-            assert "crawled_time" in result
+            assert result.source == "UNKNOWN"
+            assert result.body_text == "# Fake content from unknown domain"
+            assert str(result.url) == "https://unknown-docs.example.com/guide"
+            assert result.crawled_time is not None

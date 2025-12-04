@@ -2,13 +2,15 @@ import asyncio
 import logging
 
 from pydantic import AnyUrl
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 from config import settings
 from elite_craft.enums import GeneralEnums
 from elite_craft.services.schemas import CrawledData
 
+
 logger = logging.getLogger(__name__)
+
 
 class SupabaseUploadService:
     """
@@ -22,19 +24,25 @@ class SupabaseUploadService:
     """
 
     # Class-level semaphore to limit concurrent chunk upload operations
-    # Set to 1 because each upload does multiple DB operations (SELECT, DELETE, INSERT batches)
+    # Set to 1 because each upload does multiple DB operations
+    # (SELECT, DELETE, INSERT batches)
     _upload_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, supabase_url: str,
-                 supabase_key: str,
-                 batch_size:int = None):
+    def __init__(
+        self,
+        supabase_url: str,
+        supabase_key: str,
+        batch_size: int = None
+    ):
         # Create client with explicit schema set to 'private'
         self.supabase_client: Client = create_client(
             supabase_url,
             supabase_key,
         )
-        self.batch_size = batch_size if batch_size is not None \
+        self.batch_size = (
+            batch_size if batch_size is not None
             else settings.DB_UPLOAD_BATCH_SIZE
+        )
 
 
     async def insert_document(self, content_to_insert: CrawledData) -> int:
@@ -51,8 +59,13 @@ class SupabaseUploadService:
         url = content_to_insert.url
         body_text = content_to_insert.body_text
 
-        db_record = content_to_insert.model_dump(mode='json', exclude={GeneralEnums.BODY_TEXT})
-        db_record[GeneralEnums.BODY_PREVIEW] = body_text[:settings.BODY_PREVIEW_END]
+        db_record = content_to_insert.model_dump(
+            mode='json',
+            exclude={GeneralEnums.BODY_TEXT}
+        )
+        db_record[GeneralEnums.BODY_PREVIEW] = (
+            body_text[:settings.BODY_PREVIEW_END]
+        )
 
         # Use upsert - updates if exists, inserts if new
         # Wrap sync Supabase call in thread to not block event loop
@@ -63,7 +76,10 @@ class SupabaseUploadService:
         )
 
         idx = response.data[0]['id']
-        logger.info(msg=f"[DB METADATA COMPLETE] Metadata upserted for: {url} with {idx}")
+        logger.info(
+            f"[DB METADATA COMPLETE] Metadata upserted for: {url} "
+            f"with {idx}"
+        )
 
         return idx
 
@@ -102,21 +118,36 @@ class SupabaseUploadService:
             # Validate input
             if len(chunks) != len(embeddings):
                 raise ValueError(
-                    f"Length mismatch: {len(chunks)} chunks but {len(embeddings)} embeddings"
+                    f"Length mismatch: {len(chunks)} chunks but "
+                    f"{len(embeddings)} embeddings"
                 )
 
             # Check if chunks exist for this URL
             existing_chunks = await asyncio.to_thread(
-                self.supabase_client.table(GeneralEnums.CHUNKS).select('id').eq('document_id', document_id).execute
+                self.supabase_client.table(GeneralEnums.CHUNKS)
+                .select('id')
+                .eq('document_id', document_id)
+                .execute
             )
 
             if existing_chunks.data:
-                logger.info(msg=f"[DB CHUNKS] Found {len(existing_chunks.data)} existing chunks, deleting for: {url}")
-                await asyncio.to_thread(
-                    self.supabase_client.table(GeneralEnums.CHUNKS).delete().eq('document_id', document_id).execute
+                logger.info(
+                    f"[DB CHUNKS] Found {len(existing_chunks.data)} "
+                    f"existing chunks, deleting for: {url}"
                 )
-                logger.info(msg=f"[DB CHUNKS] Deleted {len(existing_chunks.data)} existing chunks for: {url}")
+                await asyncio.to_thread(
+                    self.supabase_client.table(GeneralEnums.CHUNKS)
+                    .delete()
+                    .eq('document_id', document_id)
+                    .execute
+                )
+                logger.info(
+                    f"[DB CHUNKS] Deleted {len(existing_chunks.data)} "
+                    f"existing chunks for: {url}"
+                )
 
+            # strict=True raises error if lengths differ
+            # We validate before but this makes it more robust
             chunk_records = [
                 {
                     "document_id": document_id,
@@ -124,8 +155,8 @@ class SupabaseUploadService:
                     "content": str(chunk_text),
                     "embedding": embedding
                 }
-                #strict=True raises error if lengths differ, we validate it before but this makes more robust
-                for chunk_id_in_document, (chunk_text, embedding) in enumerate(zip(chunks, embeddings, strict=True))
+                for chunk_id_in_document, (chunk_text, embedding)
+                in enumerate(zip(chunks, embeddings, strict=True))
             ]
 
             for i in range(0, len(chunk_records), self.batch_size):
@@ -133,10 +164,15 @@ class SupabaseUploadService:
 
                 # Wrap sync Supabase call in thread to not block event loop
                 await asyncio.to_thread(
-                    self.supabase_client.table(GeneralEnums.CHUNKS).insert(batch).execute
+                    self.supabase_client.table(GeneralEnums.CHUNKS)
+                    .insert(batch)
+                    .execute
                 )
 
-            logger.info(msg=f"[DB CHUNKS COMPLETE] Successfully inserted {len(chunk_records)} chunks for: {url}")
+            logger.info(
+                f"[DB CHUNKS COMPLETE] Successfully inserted "
+                f"{len(chunk_records)} chunks for: {url}"
+            )
 
             return {
                 "total_chunks": len(chunk_records),

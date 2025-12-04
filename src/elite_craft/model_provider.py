@@ -3,17 +3,37 @@ from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from ollama import Client
 
+
 class ModelConfig:
+    """
+    Configuration for LLM and embedding model providers.
+
+    Supports multiple providers:
+    - Local Ollama (use_ollama_local=True)
+    - Ollama Cloud (default, requires api_key)
+    - Groq Cloud (use_groq=True, requires api_key)
+
+    Attributes:
+        model: Model name (e.g., 'gpt-oss:20b-cloud', 'embeddinggemma')
+        num_ctx: Context window size for Ollama models
+        model_provider_url: Custom provider URL (defaults vary by provider)
+        reasoning: Enable reasoning mode for supported models
+        temperature: Sampling temperature (0 = deterministic)
+        use_ollama_local: Use local Ollama instance
+        api_key: API key for cloud providers
+        use_groq: Use Groq cloud provider
+    """
+
     def __init__(
         self,
-        model:str,
-        num_ctx:int = None,
-        model_provider_url:str = None,
-        reasoning:bool = False,
-        temperature:int = 0,
-        use_ollama_local:bool = False,
-        api_key:str = None,
-        use_groq:bool = None,
+        model: str,
+        num_ctx: int = None,
+        model_provider_url: str = None,
+        reasoning: bool = False,
+        temperature: int = 0,
+        use_ollama_local: bool = False,
+        api_key: str = None,
+        use_groq: bool = None,
     ):
 
         self.model = model
@@ -26,18 +46,27 @@ class ModelConfig:
         self.use_groq = use_groq
 
 
-    def get_llm(self):
+    def get_llm(self) -> ChatOllama | ChatGroq:
         """
-        Loads the llm.
-        """
+        Load and return the configured LLM instance.
 
+        Returns:
+            ChatOllama or ChatGroq instance based on configuration
+
+        Raises:
+            Exception: If model pulling or initialization fails
+        """
         if self.use_ollama_local:
             # Use local Ollama
-            _check_and_pull_ollama_model(model_name=self.model, ollama_url=self.model_provider_url)
+            _check_and_pull_ollama_model(
+                model_name=self.model,
+                ollama_url=self.model_provider_url
+            )
             ollama_client = Client(host=self.model_provider_url)
             ollama_client.generate(model=self.model)
 
-            return ChatOllama( #wrap the model
+            # Wrap the model in LangChain interface
+            return ChatOllama(
                 model=self.model,
                 base_url=self.model_provider_url,
                 num_ctx=self.num_ctx,
@@ -67,11 +96,23 @@ class ModelConfig:
                 keep_alive="5m",
             )
 
-    def get_embedding(self):
+    def get_embedding(self) -> OllamaEmbeddings:
         """
-        Loads the embedding model from local Ollama (defaults to localhost:11434).
+        Load and return the configured embedding model.
+
+        Uses local Ollama instance (defaults to localhost:11434).
+        Automatically pulls the model if not available locally.
+
+        Returns:
+            OllamaEmbeddings instance configured with the specified model
+
+        Raises:
+            Exception: If model pulling or initialization fails
         """
-        _check_and_pull_ollama_model(model_name=self.model, ollama_url=self.model_provider_url)
+        _check_and_pull_ollama_model(
+            model_name=self.model,
+            ollama_url=self.model_provider_url
+        )
         ollama_client = Client(host=self.model_provider_url)
         ollama_client.embed(model=self.model)
 
@@ -81,9 +122,10 @@ class ModelConfig:
         )
 
 
-
-def main():
+def main() -> None:
+    """Entry point for testing model provider functionality."""
     print('main')
+
 
 if __name__ == '__main__':  # pragma: no cover
     main()
