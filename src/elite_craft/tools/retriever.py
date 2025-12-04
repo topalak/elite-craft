@@ -70,7 +70,9 @@ class Retriever:
         result = self.supabase_client.rpc('match_chunks', params).execute()
 
         if result.data:
-            return result.data
-
-        logger.info("No chunks found for query")
-        return []
+            out = result.data
+        else:
+            logger.info("No chunks found for query")
+            out = []
+            
+        return out
