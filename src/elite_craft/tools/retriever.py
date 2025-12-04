@@ -69,6 +69,8 @@ class Retriever:
 
         result = self.supabase_client.rpc('match_chunks', params).execute()
 
+        # out = result.data if result.data else []
+
         if result.data:
             out = result.data
         else:
