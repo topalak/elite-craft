@@ -1,6 +1,7 @@
 import logging
 
 from docling.chunking import HybridChunker
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter
 
@@ -24,10 +25,17 @@ class Chunker:
         chunker: HybridChunker instance for intelligent text segmentation
     """
 
-    def __init__(self):
+    def __init__(self,
+        tokenizer_name:str,
+        max_token_size_per_chunk: int
+    ):
         """Initialize chunker with Docling converter and chunker."""
+        self.tokenizer = HuggingFaceTokenizer.from_pretrained(
+            model_name=tokenizer_name,
+            max_tokens=max_token_size_per_chunk
+        )
         self.converter = DocumentConverter()
-        self.chunker = HybridChunker()
+        self.chunker = HybridChunker(tokenizer=self.tokenizer, merge_peers=True)
 
     def chunk(self, content: str, url: str) -> list[str]:
         """

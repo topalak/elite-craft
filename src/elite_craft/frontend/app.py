@@ -148,7 +148,7 @@ if query := st.chat_input("How do I build an agent?"):
                         response.retrieved_chunks, 1
                     ):
                         # Show first 25 characters as preview
-                        preview = chunk.content[:25].replace('\n', ' ')
+                        preview = chunk.content[:500].replace('\n', ' ')
                         st.markdown(
                             f"**Source {idx}:** {preview}... - "
                             f"[{chunk.url}]({chunk.url})"

@@ -22,10 +22,12 @@ class UpdateDBPipeline:
     def __init__(
         self,
         embedding_model: str,
+        tokenizer_name: str,
+        max_token: int,
         supabase_url: str,
         supabase_key: str
     ):
-        self.chunker = Chunker()
+        self.chunker = Chunker(tokenizer_name=tokenizer_name, max_token_size_per_chunk=max_token)
         self.embedder = Embedder(model=embedding_model)
         self.uploader = SupabaseUploadService(
             supabase_url=supabase_url,
@@ -132,6 +134,8 @@ async def main():
 
     pipeline = UpdateDBPipeline(
         embedding_model=settings.EMBEDDING_MODEL,
+        tokenizer_name=settings.TOKENIZER_NAME,
+        max_token=settings.MAX_TOKEN_SIZE,
         supabase_url=settings.SUPABASE_URL,
         supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
     )

@@ -44,7 +44,10 @@ class Settings(BaseSettings):
     SUPABASE_ANON_PUBLIC_KEY: str = ""
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_TRACING: str = "false"
-    EMBEDDING_MODEL: str = ("nomic-embed-text:latest")
+
+    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
+    TOKENIZER_NAME: str = "nomic-ai/nomic-embed-text-v1.5"
+    MAX_TOKEN_SIZE: int = 512
     LLM_NAME: str = "gpt-oss:20b-cloud"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
