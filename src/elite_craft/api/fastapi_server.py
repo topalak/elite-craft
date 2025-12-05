@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from elite_craft.agent.crafter_agent import Crafter
 from elite_craft.services.update_db_pipeline import UpdateDBPipeline
-from src.api.schemas import (
+from elite_craft.api.schemas import (
     QuestionRequest,
     QuestionResponse,
     UpdateDBRequest,
@@ -69,7 +69,7 @@ logger.info("✅ UpdateDBPipeline initialized")
 # ============================================
 
 @app.post("/api/ask", response_model=QuestionResponse)
-async def ask_question(request: QuestionRequest):
+async def ask_question(request: QuestionRequest) -> QuestionResponse:
     """
     Main endpoint: Ask the Crafter agent a question.
 
@@ -118,7 +118,7 @@ async def ask_question(request: QuestionRequest):
 async def update_database(
     request: UpdateDBRequest,
     background_tasks: BackgroundTasks
-):
+) -> UpdateDBResponse:
     """
     Trigger database update with new documentation URLs.
 
