@@ -36,8 +36,9 @@ class Retriever:
     def retrieve_relevant_chunks(
         self,
         query: str,
-        match_count: int = 5,
-        source_filter: str = None
+        match_count: int = 20,
+        source_filter: str = None,
+        threshold: float = 0.10
     ) -> list[dict]:
         """
         Retrieve relevant chunks from Supabase using semantic search.
@@ -47,6 +48,7 @@ class Retriever:
             match_count: Maximum number of chunks to return (default: 5)
             source_filter: Optional filter by source name
                 (e.g., 'langchain', 'docling')
+            threshold: Minimum similarity score to include (default: 0.35)
 
         Returns:
             List of dictionaries containing chunk content and metadata.
@@ -69,12 +71,17 @@ class Retriever:
 
         result = self.supabase_client.rpc('match_chunks', params).execute()
 
-        # out = result.data if result.data else []
-
         if result.data:
-            out = result.data
+            # Filter by similarity threshold
+            out = [
+                chunk for chunk in result.data
+                if chunk.get('similarity', 0) >= threshold
+            ]
+            if not out:
+                logger.info(
+                    f"No chunks found above similarity threshold {threshold}")
         else:
             logger.info("No chunks found for query")
             out = []
-            
+
         return out

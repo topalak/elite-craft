@@ -46,7 +46,7 @@ class ModelConfig:
         self.use_groq = use_groq
 
 
-    def get_llm(self) -> ChatOllama | ChatGroq:
+    def get_llm(self):
         """
         Load and return the configured LLM instance.
 

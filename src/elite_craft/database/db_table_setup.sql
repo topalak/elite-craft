@@ -25,11 +25,6 @@ CREATE TABLE chunks (
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
 );
 
--- 5) Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX IF NOT EXISTS idx_documents_source ON documents(source);
-CREATE INDEX IF NOT EXISTS idx_documents_url ON documents(url);
 
 -- 6) Set timeouts
 ALTER ROLE authenticator SET statement_timeout = '2min';

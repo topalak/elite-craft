@@ -1,7 +1,7 @@
 --Create match_chunks function
 CREATE OR REPLACE FUNCTION match_chunks (
     query_embedding vector(768),
-    match_count int DEFAULT 5,    -- todo re-rank
+    match_count int DEFAULT 20,    -- todo re-rank
     source_filter varchar DEFAULT NULL
 ) RETURNS TABLE (
     chunk_id integer,
@@ -31,3 +31,10 @@ BEGIN
     LIMIT match_count;
 END;
 $$;
+
+
+-- 5) Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_documents_source ON documents(source);
+CREATE INDEX IF NOT EXISTS idx_documents_url ON documents(url);

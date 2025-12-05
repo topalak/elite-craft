@@ -131,7 +131,7 @@ async def main():
     logger.setLevel(level=settings.LOGGING_LEVEL)
 
     pipeline = UpdateDBPipeline(
-        embedding_model='embeddinggemma',
+        embedding_model=settings.EMBEDDING_MODEL,
         supabase_url=settings.SUPABASE_URL,
         supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
     )

@@ -91,7 +91,7 @@ class Crafter:
         )
         self.console = Console()
 
-    def ask(self, query: str, print_to_cli: bool = True) -> dict:
+    def ask(self, query: str, print_to_cli: bool = False) -> dict:
         """
         Ask the Crafter agent a question.
 

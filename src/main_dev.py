@@ -11,8 +11,17 @@ from config import settings
 from elite_craft.agent.crafter_agent import Crafter
 
 
+# Configure root logger to control ALL loggers in the application
+logging.basicConfig(
+    level=settings.LOGGING_LEVEL,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# (Supabase, Anthropic API, etc. use httpx which logs all requests at INFO level)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
-logger.setLevel(level=settings.LOGGING_LEVEL)
 
 
 if __name__ == "__main__":
@@ -31,5 +40,5 @@ if __name__ == "__main__":
             print("Catch You Later")
             break
         # Get retrieved chunks
-        crafter.ask(query)
+        crafter.ask(query=query, print_to_cli=True)
 

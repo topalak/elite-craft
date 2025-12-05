@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     SUPABASE_ANON_PUBLIC_KEY: str = ""
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_TRACING: str = "false"
-    EMBEDDING_MODEL: str = "embeddinggemma"
+    EMBEDDING_MODEL: str = ("nomic-embed-text:latest")
     LLM_NAME: str = "gpt-oss:20b-cloud"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
