@@ -13,6 +13,7 @@ from rich.markdown import Markdown
 from elite_craft.model_provider import ModelConfig
 from elite_craft.tools.retriever import Retriever
 
+
 SYSTEM_INSTRUCTIONS: Final = """
 <identity>
 You are an AI assistant specialized in explaining technical documentation
@@ -38,7 +39,6 @@ about LangChain, LangGraph.
 - If information is unclear or missing, acknowledge it
 </response_guidelines>
 """
-
 FORMATTED_TEXT: Final = """ <task>
 The user asked: "{query}"
 

@@ -101,7 +101,7 @@ class ModelConfig:
         Load and return the configured embedding model.
 
         Uses local Ollama instance (defaults to localhost:11434).
-        Automatically pulls the model if not available locally.
+        Forces a fresh pull of the model to ensure it's properly loaded.
 
         Returns:
             OllamaEmbeddings instance configured with the specified model
@@ -109,12 +109,32 @@ class ModelConfig:
         Raises:
             Exception: If model pulling or initialization fails
         """
-        _check_and_pull_ollama_model(
-            model_name=self.model,
-            ollama_url=self.model_provider_url
-        )
         ollama_client = Client(host=self.model_provider_url)
-        ollama_client.embed(model=self.model)
+
+        # Force pull the model (removes old version if exists and pulls fresh)
+        print(f"Pulling embedding model: {self.model}")
+        current_digest, bars = '', {}
+        for progress in ollama_client.pull(model=self.model, stream=True):
+            digest = progress.get('digest', '')
+            if digest != current_digest and current_digest in bars:
+                bars[current_digest].close()
+
+            if not digest:
+                print(progress.get('status'))
+                continue
+
+            if digest not in bars and (total := progress.get('total')):
+                from tqdm import tqdm
+                bars[digest] = tqdm(total=total, desc=f'pulling {digest[7:19]}', unit='B', unit_scale=True)
+
+            if completed := progress.get('completed'):
+                bars[digest].update(completed - bars[digest].n)
+
+            current_digest = digest
+
+        # Warm up the model by generating a test embedding
+        ollama_client.embed(model=self.model, input="warmup")
+        print(f"✅ Model {self.model} loaded successfully")
 
         return OllamaEmbeddings(
             model=self.model,

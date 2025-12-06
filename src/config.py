@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     LANGSMITH_TRACING: str = "false"
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    TOKENIZER_NAME: str = "nomic-ai/nomic-embed-text-v1.5"
+    #EMBEDDING_MODEL: str = "embeddinggemma"
     MAX_TOKEN_SIZE: int = 512
     LLM_NAME: str = "gpt-oss:20b-cloud"
 
@@ -56,7 +56,8 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    LOGGING_LEVEL: int = logging.WARNING
+    #LOGGING_LEVEL: int = logging.WARNING
+    LOGGING_LEVEL: int = logging.INFO
 
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100

@@ -22,12 +22,10 @@ class UpdateDBPipeline:
     def __init__(
         self,
         embedding_model: str,
-        tokenizer_name: str,
-        max_token: int,
         supabase_url: str,
         supabase_key: str
     ):
-        self.chunker = Chunker(tokenizer_name=tokenizer_name, max_token_size_per_chunk=max_token)
+        self.chunker = Chunker()
         self.embedder = Embedder(model=embedding_model)
         self.uploader = SupabaseUploadService(
             supabase_url=supabase_url,
@@ -134,8 +132,6 @@ async def main():
 
     pipeline = UpdateDBPipeline(
         embedding_model=settings.EMBEDDING_MODEL,
-        tokenizer_name=settings.TOKENIZER_NAME,
-        max_token=settings.MAX_TOKEN_SIZE,
         supabase_url=settings.SUPABASE_URL,
         supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
     )
@@ -144,15 +140,15 @@ async def main():
         "https://docs.langchain.com/oss/python/langchain/agents",
         "https://docs.langchain.com/oss/python/langchain/messages",
         "https://docs.langchain.com/oss/python/langchain/models",
-        #"https://docs.langchain.com/oss/python/langchain/tools",
-        #"https://docs.langchain.com/oss/python/langchain/structured-output",
-        #"https://docs.langchain.com/oss/python/langchain/middleware/built-in",
-        #"https://docs.langchain.com/oss/python/langchain/overview",
-        #"https://docs.langchain.com/oss/python/langchain/streaming",
-        #"https://docs.langchain.com/oss/python/langchain/guardrails",
-        #"https://docs.langchain.com/oss/python/langchain/runtime",
-        #"https://docs.langchain.com/oss/python/langchain/context-engineering",
-        #"https://docs.langchain.com/oss/python/langchain/human-in-the-loop",
+        "https://docs.langchain.com/oss/python/langchain/tools",
+        "https://docs.langchain.com/oss/python/langchain/structured-output",
+        "https://docs.langchain.com/oss/python/langchain/middleware/built-in",
+        "https://docs.langchain.com/oss/python/langchain/overview",
+        "https://docs.langchain.com/oss/python/langchain/streaming",
+        "https://docs.langchain.com/oss/python/langchain/guardrails",
+        "https://docs.langchain.com/oss/python/langchain/runtime",
+        "https://docs.langchain.com/oss/python/langchain/context-engineering",
+        "https://docs.langchain.com/oss/python/langchain/human-in-the-loop",
     ]
 
     # Process all URLs concurrently

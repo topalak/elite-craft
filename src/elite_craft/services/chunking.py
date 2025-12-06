@@ -1,9 +1,6 @@
 import logging
 
-from docling.chunking import HybridChunker
-from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
-from docling.datamodel.base_models import InputFormat
-from docling.document_converter import DocumentConverter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from config import settings
 
@@ -14,55 +11,53 @@ logger.setLevel(level=settings.LOGGING_LEVEL)
 
 class Chunker:
     """
-    Service for chunking documents using Docling's hybrid strategy.
+    Service for chunking documents using recursive character text splitting.
 
-    Converts markdown content into Docling documents and applies hybrid
-    chunking to create semantically coherent text segments suitable for
-    embedding and retrieval.
+    Uses RecursiveCharacterTextSplitter with intelligent separator hierarchy
+    to create semantically coherent chunks. Splits content based on headers,
+    paragraphs, code definitions, and other structural elements while maintaining
+    readability and context.
 
     Attributes:
-        converter: DocumentConverter instance for markdown processing
-        chunker: HybridChunker instance for intelligent text segmentation
+        splitter: RecursiveCharacterTextSplitter instance for text segmentation
     """
 
-    def __init__(self,
-        tokenizer_name:str,
-        max_token_size_per_chunk: int
-    ):
-        """Initialize chunker with Docling converter and chunker."""
-        self.tokenizer = HuggingFaceTokenizer.from_pretrained(
-            model_name=tokenizer_name,
-            max_tokens=max_token_size_per_chunk
+    def __init__(self):
+        """Initialize chunker with recursive character text splitter."""
+        self.splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000,
+            chunk_overlap=200,
+            keep_separator=True,
+            separators=[
+                "\n# ",  # H1 - Top-level sections
+                "\n## ",  # H2 - Major sections
+                "\n### ",  # H3 - Subsections
+                "\n#### ",  # H4 - Minor subsections
+                "\n\n",  # Paragraph breaks
+                "\nclass ",  # Python class definitions
+                "\ndef ",  # Python function definitions
+                "\n",  # Line breaks
+                ". ",  # Sentence boundaries
+                " ",  # Word boundaries
+                "",  # Character-level (last resort)
+                "\n```"
+            ]
         )
-        self.converter = DocumentConverter()
-        self.chunker = HybridChunker(tokenizer=self.tokenizer, merge_peers=True)
 
     def chunk(self, content: str, url: str) -> list[str]:
         """
-        Convert markdown content to document and chunk it.
+        Split content into semantically coherent chunks.
 
         Args:
-            content: Markdown source content to chunk
+            content: Source content to chunk
             url: Source URL (for logging purposes)
 
         Returns:
             List of text chunks as strings
 
         Raises:
-            Exception: If document conversion or chunking fails
+            Exception: If text splitting fails
         """
-        # Convert str document to Docling Document
-        doc = self.converter.convert_string(
-            content=content,
-            format=InputFormat.MD,
-            name=None
-        ).document
-
-        chunk_iter = self.chunker.chunk(dl_doc=doc)
-
-        # Convert Docling Document chunks to string format
-        chunks = [chunk.text for chunk in chunk_iter]
-
+        chunks = self.splitter.split_text(content)
         logger.info(f"[CHUNK COMPLETE] Generated chunks for {url}")
         return chunks
-
