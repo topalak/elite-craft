@@ -83,7 +83,7 @@ async def crawl(url: str) -> CrawledData:
     # Get current time in configured timezone as ISO format string
     crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
-    return CrawledData( #todo check how looks code blocks
+    return CrawledData(
         body_text=response.markdown,
         crawled_time=crawled_time,
         url=AnyUrl(url),
