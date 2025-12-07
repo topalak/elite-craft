@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
         LOGGING_LEVEL: Logging level (default: WARNING)
         DB_UPLOAD_BATCH_SIZE: Batch size for database uploads
         BODY_PREVIEW_END: Character limit for body preview column
+        CHUNK_SIZE: Max chunk size per chunk
         API_HOST: API server host (default: localhost)
         API_PORT: API server port (default: 8000)
     """
@@ -46,7 +48,6 @@ class Settings(BaseSettings):
     LANGSMITH_TRACING: str = "false"
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    #EMBEDDING_MODEL: str = "embeddinggemma"
     MAX_TOKEN_SIZE: int = 512
     LLM_NAME: str = "gpt-oss:20b-cloud"
 
@@ -64,6 +65,20 @@ class Settings(BaseSettings):
 
     # Database "body_preview" column's preview size
     BODY_PREVIEW_END: int = 3000
+
+    # WARNING: Changing CHUNK_SIZE requires re-ingesting ALL documents
+    # This value affects knowledge base quality. Test retrieval before production.
+    CHUNK_SIZE: int = Field(
+        default=1000,
+        ge=100,
+        le=8000,
+        description=(
+            "Maximum chunk size in characters for document ingestion. "
+            "Affects entire knowledge base - changing requires full re-ingestion. "
+            "Recommended: 500-1000 for code snippets, 1500-2000 for tutorials. "
+            "Test retrieval quality before committing to a value."
+        )
+    )
 
     # API server configuration
     API_HOST: str = "localhost"

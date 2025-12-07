@@ -23,9 +23,10 @@ class UpdateDBPipeline:
         self,
         embedding_model: str,
         supabase_url: str,
-        supabase_key: str
+        supabase_key: str,
+        chunk_size: int,
     ):
-        self.chunker = Chunker()
+        self.chunker = Chunker(chunk_size=chunk_size)
         self.embedder = Embedder(model=embedding_model)
         self.uploader = SupabaseUploadService(
             supabase_url=supabase_url,
@@ -134,6 +135,7 @@ async def main():
         embedding_model=settings.EMBEDDING_MODEL,
         supabase_url=settings.SUPABASE_URL,
         supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+        chunk_size=settings.CHUNK_SIZE,
     )
 
     urls = [

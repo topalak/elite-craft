@@ -57,10 +57,9 @@ logger.info("✅ Crafter agent initialized")
 # Initialize UpdateDBPipeline
 pipeline = UpdateDBPipeline(
     embedding_model=settings.EMBEDDING_MODEL,
-    tokenizer_name=settings.TOKENIZER_NAME,
-    max_token=settings.MAX_TOKEN_SIZE,
     supabase_url=settings.SUPABASE_URL,
-    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
+    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+    chunk_size=settings.CHUNK_SIZE
 )
 
 logger.info("✅ UpdateDBPipeline initialized")

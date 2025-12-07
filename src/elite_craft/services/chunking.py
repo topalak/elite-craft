@@ -22,10 +22,10 @@ class Chunker:
         splitter: RecursiveCharacterTextSplitter instance for text segmentation
     """
 
-    def __init__(self):
+    def __init__(self, chunk_size:int):
         """Initialize chunker with recursive character text splitter."""
         self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=2000,
+            chunk_size=chunk_size,
             chunk_overlap=200,
             keep_separator=True,
             separators=[

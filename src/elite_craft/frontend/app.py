@@ -104,22 +104,33 @@ for message in st.session_state.messages:
 
         # Display retrieved chunks if this was an assistant message
         if message["role"] == "assistant" and "chunks" in message:
-            with st.expander("📚 Retrieved Documentation"):
+            with st.expander("📚 Retrieved Documentation", expanded=False):
                 for idx, chunk in enumerate(message["chunks"], 1):
-                    # Show first 25 characters as preview
-                    preview = chunk['content'][:25].replace('\n', ' ')
+                    st.markdown(f"### Chunk {idx}")
+
+                    # Display metadata
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        st.markdown(
+                            f"**Source:** [{chunk['url']}]({chunk['url']})"
+                        )
+                    with col2:
+                        similarity_pct = chunk['similarity'] * 100
+                        st.markdown(
+                            f"**Similarity:** "
+                            f":green[{similarity_pct:.1f}%]"
+                        )
+
                     st.markdown(
-                        f"**Source {idx}:** {preview}... - "
-                        f"[{chunk['url']}]({chunk['url']})"
+                        f"**Chunk ID:** {chunk['chunk_id_in_document']}"
                     )
-                    st.markdown(
-                        f"*Chunk ID: {chunk['chunk_id_in_document']}*"
-                    )
-                    st.code(
-                        chunk['content'][:300] + "...",
-                        language="markdown"
-                    )
-                    st.markdown("---")
+
+                    # Display full content
+                    st.markdown("**Content:**")
+                    st.code(chunk['content'], language="markdown")
+
+                    if idx < len(message["chunks"]):
+                        st.markdown("---")
 
 # Chat input
 if query := st.chat_input("How do I build an agent?"):
@@ -143,25 +154,35 @@ if query := st.chat_input("How do I build an agent?"):
                 st.markdown(response.answer)
 
                 # Display retrieved chunks
-                with st.expander("📚 Retrieved Documentation"):
+                with st.expander("📚 Retrieved Documentation", expanded=False):
                     for idx, chunk in enumerate(
                         response.retrieved_chunks, 1
                     ):
-                        # Show first 25 characters as preview
-                        preview = chunk.content[:500].replace('\n', ' ')
+                        st.markdown(f"### Chunk {idx}")
+
+                        # Display metadata
+                        col1, col2 = st.columns([2, 1])
+                        with col1:
+                            st.markdown(
+                                f"**Source:** [{chunk.url}]({chunk.url})"
+                            )
+                        with col2:
+                            similarity_pct = chunk.similarity * 100
+                            st.markdown(
+                                f"**Similarity:** "
+                                f":green[{similarity_pct:.1f}%]"
+                            )
+
                         st.markdown(
-                            f"**Source {idx}:** {preview}... - "
-                            f"[{chunk.url}]({chunk.url})"
+                            f"**Chunk ID:** {chunk.chunk_id_in_document}"
                         )
-                        st.markdown(
-                            f"*Chunk ID: "
-                            f"{chunk.chunk_id_in_document}*"
-                        )
-                        st.code(
-                            chunk.content[:300] + "...",
-                            language="markdown"
-                        )
-                        st.markdown("---")
+
+                        # Display full content
+                        st.markdown("**Content:**")
+                        st.code(chunk.content, language="markdown")
+
+                        if idx < len(response.retrieved_chunks):
+                            st.markdown("---")
 
                 # Add to history
                 st.session_state.messages.append({
@@ -171,7 +192,8 @@ if query := st.chat_input("How do I build an agent?"):
                         {
                             "url": chunk.url,
                             "chunk_id_in_document": chunk.chunk_id_in_document,
-                            "content": chunk.content
+                            "content": chunk.content,
+                            "similarity": chunk.similarity
                         }
                         for chunk in response.retrieved_chunks
                     ]
