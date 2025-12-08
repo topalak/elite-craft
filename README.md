@@ -74,7 +74,7 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 - **pgvector**: Cosine similarity search for semantic retrieval
 
 **Embeddings & LLMs:**
-- **Ollama**: Local embedding models (embeddinggemma)
+- **Ollama**: Local embedding models (nomic-embed-text:v1.5)
 - **HuggingFace**: Alternative embedding providers
 - Configurable LLM providers (Ollama, Groq)
 
@@ -144,7 +144,7 @@ OLLAMA_API_KEY=your-ollama-key
 ```
 
 The configuration is managed through Pydantic Settings in `src/config.py` with the following defaults:
-- Embedding model: `embeddinggemma`
+- Embedding model: `nomic-embed-text:v1.5`
 - LLM: `gpt-oss:20b-cloud`
 - Batch size for database uploads: 100
 - Timezone: UTC+3

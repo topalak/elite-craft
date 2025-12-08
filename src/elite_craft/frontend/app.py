@@ -8,12 +8,15 @@ This is the user-facing web interface that:
 - Displays answers and retrieved chunks
 """
 import logging
+import os
 
 import streamlit as st
 
 from config import settings
 from elite_craft.api import EliteCraftClient
 
+os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
+os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'false')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

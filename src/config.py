@@ -48,8 +48,7 @@ class Settings(BaseSettings):
     LANGSMITH_TRACING: str = "false"
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    MAX_TOKEN_SIZE: int = 512
-    LLM_NAME: str = "gpt-oss:20b-cloud"
+    LLM_NAME: str = "gpt-oss:120b-cloud"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(
