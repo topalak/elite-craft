@@ -10,9 +10,34 @@ requires-python = ">=3.13"
 dependencies = [
     "ai-common @ git+https://github.com/bgunyel/ai-common.git@main",
     "deepagents>=0.1.4",
-    "pydantic-settings==2.11.0",
+    "pydantic-settings>=2.11.0",
     "fastapi==0.120.0",
     "streamlit==1.50.0",
-    "supabase==2.22.1",
+    "supabase>=2.22.1",
     "uvicorn==0.38.0",
+    "crawl4ai>=0.7.6",
+    "pytest>=9.0.1",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.25.2",
+    "langchain>=1.1.0",
+    "langchain-text-splitters>=1.0.0",
+]
+
+[tool.pytest.ini_options]
+# Test discovery
+python_files = "test_*.py"
+testpaths = ["tests"]
+
+# Async support
+asyncio_mode = "auto"
+
+# Basic options
+addopts = [
+    "--verbose",
+    "--tb=short",
+]
+
+# Filter warnings from third-party libraries
+filterwarnings = [
+    "ignore::pydantic.PydanticDeprecatedSince20",
 ]
