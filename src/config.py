@@ -40,6 +40,9 @@ class Settings(BaseSettings):
         API_PORT: API server port (default: 8000)
     """
     OLLAMA_API_KEY: str = ""
+    OLLAMA_HOST_LOCAL: str = ""
+    OLLAMA_HOST_COLAB: str = ""
+    OLLAMA_COLAB_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_SECRET_KEY: str = ""
@@ -47,14 +50,24 @@ class Settings(BaseSettings):
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_TRACING: str = "false"
 
-    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "gpt-oss:120b-cloud"
-
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(
         offset=datetime.timedelta(hours=3),
         name='UTC+3'
     )
+
+    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
+    LLM_NAME: str = "qwen2.5-coder:3b"
+    #LLM_NAME: str = "qwen2.5-coder:7b"
+    #LLM_NAME: str = "qwen3-coder:30b"
+    #LLM_NAME: str = "qwen3-coder:480b-cloud"
+    #LLM_NAME: str = "gpt-oss:20b-cloud"
+
+    # API server configuration
+    API_HOST: str = "localhost"
+    API_PORT: int = 8000
+
+    USE_OLLAMA_LOCAL: bool = True
 
     #LOGGING_LEVEL: int = logging.WARNING
     LOGGING_LEVEL: int = logging.INFO
@@ -78,10 +91,6 @@ class Settings(BaseSettings):
             "Test retrieval quality before committing to a value."
         )
     )
-
-    # API server configuration
-    API_HOST: str = "localhost"
-    API_PORT: int = 8000
 
     model_config = SettingsConfigDict(
         extra="ignore",

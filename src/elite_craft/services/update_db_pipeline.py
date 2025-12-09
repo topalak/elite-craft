@@ -151,6 +151,12 @@ async def main():
         "https://docs.langchain.com/oss/python/langchain/runtime",
         "https://docs.langchain.com/oss/python/langchain/context-engineering",
         "https://docs.langchain.com/oss/python/langchain/human-in-the-loop",
+
+        "https://reference.langchain.com/python/langchain/agents/",
+        "https://reference.langchain.com/python/langchain/middleware/",
+        "https://reference.langchain.com/python/langchain/models/",
+        "https://reference.langchain.com/python/langchain/messages/",
+        "https://reference.langchain.com/python/langchain/tools/",
     ]
 
     # Process all URLs concurrently

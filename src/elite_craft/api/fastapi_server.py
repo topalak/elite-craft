@@ -46,6 +46,8 @@ app.add_middleware(
 # Initialize Crafter agent ONCE when server starts (not per request!)
 crafter = Crafter(
     llm_model=settings.LLM_NAME,
+    use_ollama_local=settings.USE_OLLAMA_LOCAL,
+    ollama_provider_url=settings.OLLAMA_HOST_LOCAL,
     llm_api_key=settings.OLLAMA_API_KEY,
     embedding_model_name=settings.EMBEDDING_MODEL,
     supabase_url=settings.SUPABASE_URL,

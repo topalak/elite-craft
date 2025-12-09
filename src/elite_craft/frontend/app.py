@@ -23,7 +23,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 client = EliteCraftClient(host=settings.API_HOST, port=settings.API_PORT)
 
-
 # Page configuration
 st.set_page_config(
     page_title="Elite Craft - AI Agent Helper",

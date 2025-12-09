@@ -36,7 +36,7 @@ class Retriever:
     def retrieve_relevant_chunks(
         self,
         query: str,
-        match_count: int = 10,
+        match_count: int = 20,
         source_filter: str = None,
         threshold: float = 0.10
     ) -> list[dict]:

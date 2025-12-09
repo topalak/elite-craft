@@ -57,7 +57,7 @@ class EliteCraftClient:
         response = requests.post(
             f"{self.base_url}/api/ask",
             json=request_data.model_dump(),
-            timeout=30,
+            timeout=90,
         )
         response.raise_for_status()
         return QuestionResponse(**response.json())
