@@ -25,8 +25,12 @@ class UpdateDBPipeline:
         supabase_url: str,
         supabase_key: str,
         chunk_size: int,
+        chunk_overlap: int
     ):
-        self.chunker = Chunker(chunk_size=chunk_size)
+        self.chunker = Chunker(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
+        )
         self.embedder = Embedder(model=embedding_model)
         self.uploader = SupabaseUploadService(
             supabase_url=supabase_url,

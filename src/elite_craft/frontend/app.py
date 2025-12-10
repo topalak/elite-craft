@@ -22,6 +22,7 @@ os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'false'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 client = EliteCraftClient(host=settings.API_HOST, port=settings.API_PORT)
+#client = EliteCraftClient(use_ngrok=True, ngrok_url=settings.OLLAMA_HOST_COLAB)
 
 # Page configuration
 st.set_page_config(
@@ -103,36 +104,6 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-        # Display retrieved chunks if this was an assistant message
-        if message["role"] == "assistant" and "chunks" in message:
-            with st.expander("📚 Retrieved Documentation", expanded=False):
-                for idx, chunk in enumerate(message["chunks"], 1):
-                    st.markdown(f"### Chunk {idx}")
-
-                    # Display metadata
-                    col1, col2 = st.columns([2, 1])
-                    with col1:
-                        st.markdown(
-                            f"**Source:** [{chunk['url']}]({chunk['url']})"
-                        )
-                    with col2:
-                        similarity_pct = chunk['similarity'] * 100
-                        st.markdown(
-                            f"**Similarity:** "
-                            f":green[{similarity_pct:.1f}%]"
-                        )
-
-                    st.markdown(
-                        f"**Chunk ID:** {chunk['chunk_id_in_document']}"
-                    )
-
-                    # Display full content
-                    st.markdown("**Content:**")
-                    st.code(chunk['content'], language="markdown")
-
-                    if idx < len(message["chunks"]):
-                        st.markdown("---")
 
 # Chat input
 if query := st.chat_input("How do I build an agent?"):

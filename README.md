@@ -151,6 +151,73 @@ The configuration is managed through Pydantic Settings in `src/config.py` with t
 
 ---
 
+## Running the Application
+
+Elite Craft has two main components that run as separate services:
+
+### 1. FastAPI Backend Server
+
+The backend exposes REST endpoints for the Crafter agent:
+
+```bash
+# Start the FastAPI server (from project root)
+PYTHONPATH=./src uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Access:**
+- API Server: `http://localhost:8000`
+- Interactive API Documentation: `http://localhost:8000/docs`
+- Alternative Documentation: `http://localhost:8000/redoc`
+
+**Note:** On first startup, Ollama will download the model (`qwen2.5-coder:7b`, ~4.68GB). The server won't be fully functional until this completes.
+
+### 2. Streamlit Frontend
+
+The frontend provides a user-friendly chat interface:
+
+```bash
+# Start the Streamlit app (from project root)
+PYTHONPATH=./src streamlit run src/elite_craft/frontend/app.py
+```
+
+**Access:**
+- Local URL: `http://localhost:8502`
+
+**Important:** Both services require `PYTHONPATH` to be set because `config.py` is located in the `src/` directory.
+
+### Running Both Services
+
+Open two terminal windows and run each command in a separate terminal:
+
+```bash
+# Terminal 1 - Backend
+PYTHONPATH=./src uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2 - Frontend
+PYTHONPATH=./src streamlit run src/elite_craft/frontend/app.py
+```
+
+To stop the services, press `CTRL+C` in each terminal.
+
+### Troubleshooting
+
+**Issue: `ModuleNotFoundError: No module named 'config'` or `No module named 'elite_craft'`**
+
+This happens when `PYTHONPATH` is not set correctly. Make sure you're running the commands from the project root directory and include `PYTHONPATH=./src` before each command.
+
+**Issue: Ollama model downloading on first startup**
+
+The FastAPI server will download the `qwen2.5-coder:7b` model (~4.68GB) on first startup. This is normal and only happens once. Wait for the download to complete before making API requests.
+
+**Long-term fix for PYTHONPATH:**
+
+To avoid needing `PYTHONPATH` every time, you can:
+1. Install the package in editable mode: `pip install -e .` (requires `setup.py` or proper `pyproject.toml` configuration)
+2. Move `config.py` into the `elite_craft/` package
+3. Add `export PYTHONPATH=./src` to your shell profile (`.bashrc`, `.zshrc`, etc.)
+
+---
+
 ## Usage
 
 ### 1. Building the Knowledge Base

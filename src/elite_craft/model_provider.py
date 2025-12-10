@@ -90,10 +90,7 @@ class ModelConfig:
                 client_kwargs={
                     'headers': {'Authorization': f'Bearer {self.api_key}'}
                 },
-                num_ctx=self.num_ctx,
-                reasoning=self.reasoning,
                 temperature=self.temperature,
-                keep_alive="5m",
             )
 
     def get_embedding(self):
@@ -108,11 +105,3 @@ class ModelConfig:
             model=self.model,
             base_url=self.model_provider_url,
         )
-
-def main() -> None:
-    """Entry point for testing model provider functionality."""
-    print('main')
-
-
-if __name__ == '__main__':  # pragma: no cover
-    main()

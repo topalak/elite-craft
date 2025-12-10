@@ -6,7 +6,6 @@ from config import settings
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=settings.LOGGING_LEVEL)
 
 
 class Chunker:
@@ -22,11 +21,11 @@ class Chunker:
         splitter: RecursiveCharacterTextSplitter instance for text segmentation
     """
 
-    def __init__(self, chunk_size:int):
+    def __init__(self, chunk_size:int, chunk_overlap:int):
         """Initialize chunker with recursive character text splitter."""
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
-            chunk_overlap=200,
+            chunk_overlap=chunk_overlap,
             keep_separator=True,
             separators=[
                 "\n# ",  # H1 - Top-level sections

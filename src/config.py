@@ -57,10 +57,10 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "qwen2.5-coder:3b"
+    #LLM_NAME: str = "qwen2.5-coder:3b"
     #LLM_NAME: str = "qwen2.5-coder:7b"
     #LLM_NAME: str = "qwen3-coder:30b"
-    #LLM_NAME: str = "qwen3-coder:480b-cloud"
+    LLM_NAME: str = "qwen3-coder:480b-cloud"
     #LLM_NAME: str = "gpt-oss:20b-cloud"
 
     # API server configuration
@@ -86,9 +86,14 @@ class Settings(BaseSettings):
         le=8000,
         description=(
             "Maximum chunk size in characters for document ingestion. "
-            "Affects entire knowledge base - changing requires full re-ingestion. "
-            "Recommended: 500-1000 for code snippets, 1500-2000 for tutorials. "
-            "Test retrieval quality before committing to a value."
+        )
+    )
+    CHUNK_OVERLAP: int = Field(
+    default=200,
+        ge=20,
+        le=1500,
+        description=(
+            "Overlap value for each chunk. "
         )
     )
 

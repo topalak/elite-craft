@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Final
 
 from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
@@ -13,7 +12,7 @@ from elite_craft.services.schemas import CrawledData
 logger = logging.getLogger(__name__)
 
 # Map documentation domains to source names
-SOURCE_MAPPING: Final = {
+SOURCE_MAPPING = {
     "docs.langchain.com": "langchain",
     "python.langchain.com": "langchain",
     "reference.langchain.com": "langchain",

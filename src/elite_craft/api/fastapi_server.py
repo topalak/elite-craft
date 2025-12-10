@@ -5,7 +5,7 @@ This is the backend HTTP server that:
 - Exposes REST endpoints for the Crafter agent
 - Handles requests from Streamlit frontend
 - Returns JSON responses
-- Runs on port 8000
+- Runs on a port you decide
 """
 import logging
 
@@ -61,7 +61,8 @@ pipeline = UpdateDBPipeline(
     embedding_model=settings.EMBEDDING_MODEL,
     supabase_url=settings.SUPABASE_URL,
     supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
-    chunk_size=settings.CHUNK_SIZE
+    chunk_size=settings.CHUNK_SIZE,
+    chunk_overlap=settings.CHUNK_OVERLAP
 )
 
 logger.info("✅ UpdateDBPipeline initialized")
@@ -96,20 +97,13 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
         logger.info(f"Received question: {request.query[:25]}...")
 
         # Call Crafter agent
-        # print_to_cli=False to avoid console output in API
-        result = crafter.ask(request.query, print_to_cli=False)
-
-        logger.info(
-            f"Successfully processed question, "
-            f"returned {len(result['chunks'])} chunks"
-        )
+        result = crafter.ask(request.query)
 
         return QuestionResponse(
-            answer=result["answer"],
-            retrieved_chunks=result["chunks"]
+            answer=result,
         )
 
-    except Exception as e:
+    except Exception as e:    #todo make it more special such as network error
         logger.error(f"Error processing question: {e}")
         raise HTTPException(
             status_code=500,

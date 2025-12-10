@@ -18,7 +18,6 @@ class QuestionRequest(BaseModel):
     query: str = Field(
         ...,
         min_length=1,
-        #max_length=1000,
         description="User's question about agent development"
     )
 
@@ -40,9 +39,7 @@ class QuestionResponse(BaseModel):
     Returned by: POST /api/ask
     """
     answer: str = Field(description="LLM-generated answer based on retrieved docs")
-    retrieved_chunks: list[RetrievedChunk] = Field(
-        description="Documentation chunks used to generate answer"
-    )
+
 
 class UpdateDBRequest(BaseModel):
     """
