@@ -46,8 +46,6 @@ class EliteCraftClient:
         self,
         host: str = None,
         port: int | str = None,
-        use_ngrok: bool = False,
-        ngrok_url: str = "",
     ):
         """
         Initialize the API client.
@@ -61,18 +59,11 @@ class EliteCraftClient:
         Raises:
             ValueError: If use_ngrok is True but ngrok_url is empty
         """
-        if use_ngrok:
-            if not ngrok_url:
-                raise ValueError(
-                    "ngrok_url must be provided when use_ngrok=True"
-                )
-            self.base_url = ngrok_url.rstrip("/")
-        else:
-            if not host or not port:
-                raise ValueError(
-                    "host and port must be provided whenuse_ngrok = False"
-                )
-            self.base_url = f"http://{host}:{port}"
+        if not host or not port:
+            raise ValueError(
+                "host and port must be provided whenuse_ngrok = False"
+            )
+        self.base_url = f"http://{host}:{port}"
 
     def ask_question(self, query: str) -> QuestionResponse:
         """

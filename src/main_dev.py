@@ -6,6 +6,7 @@ Allows users to ask questions and receive answers based on
 retrieved documentation from the knowledge base.
 """
 import logging
+import os
 
 from config import settings
 from elite_craft.agent.crafter_agent import Crafter
@@ -25,6 +26,11 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
+
+    os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
+    os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
+    os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
+    os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
 
     crafter = Crafter(
         llm_model=settings.LLM_NAME,

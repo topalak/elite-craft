@@ -32,21 +32,20 @@ class Handler:
             embedding_model_name=embedding_model
         )
 
-    def retriever_tool_wrapper(self):
+    def get_retriever_tool(self):
         """
-        Create retriever tool for agent use
+        Create retriever tool for agent use.
 
         Returns:
             LangChain tool that performs semantic search against
             documentation knowledge base
         """
-        @tool
+        @tool("retriever_tool")
         def retriever_tool(query: str, source_filter: str = None) -> list[dict]:
             """
             Retrieve relevant documentation chunks using semantic search.
 
-            Use this tool when you need to find information about LangChain,
-            LangGraph, or related frameworks. The tool searches a vector database
+            The tool searches a vector database
             of documentation and returns the most relevant chunks.
 
             Args:
@@ -60,8 +59,7 @@ class Handler:
                 query=query,
                 source_filter=source_filter
             )
+            # TODO: convert list to single str
             return response
 
-
-            #todo convert list to single str
         return retriever_tool

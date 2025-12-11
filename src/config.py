@@ -26,8 +26,10 @@ class Settings(BaseSettings):
         SUPABASE_URL: Supabase project URL
         SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key
         SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key
-        LANGSMITH_API_KEY: LangSmith API key for tracing
         LANGSMITH_TRACING: Enable/disable LangSmith tracing
+        LANGSMITH_ENDPOINT: LangSmith API endpoint URL
+        LANGSMITH_API_KEY: LangSmith API key for tracing
+        LANGSMITH_PROJECT: LangSmith project name
         EMBEDDING_MODEL: Name of embedding model (default: embeddinggemma)
         LLM_NAME: Name of LLM model (default: gpt-oss:20b-cloud)
         OUTPUT: Output directory path
@@ -47,8 +49,10 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_SECRET_KEY: str = ""
     SUPABASE_ANON_PUBLIC_KEY: str = ""
+    LANGSMITH_TRACING: str = "true"
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: str = ""
-    LANGSMITH_TRACING: str = "false"
+    LANGSMITH_PROJECT: str = "elite-craft"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(
@@ -57,9 +61,8 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    #LLM_NAME: str = "qwen2.5-coder:3b"
-    LLM_NAME: str = "qwen2.5-coder:7b"
-    #LLM_NAME: str = "qwen3-coder:30b"
+    #LLM_NAME: str = "qwen2.5-coder:7b"
+    LLM_NAME: str = "qwen3-coder:30b"
     #LLM_NAME: str = "qwen3-coder:480b-cloud"
     #LLM_NAME: str = "gpt-oss:20b-cloud"
 

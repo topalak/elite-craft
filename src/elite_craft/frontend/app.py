@@ -5,7 +5,7 @@ This is the user-facing web interface that:
 - Displays chat UI
 - Captures user questions
 - Makes HTTP requests to FastAPI backend
-- Displays answers and retrieved chunks
+- Displays answers
 """
 import logging
 import os
@@ -15,14 +15,15 @@ import streamlit as st
 from config import settings
 from elite_craft.api import EliteCraftClient
 
+os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
+os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
 os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
-os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'false')
+os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 client = EliteCraftClient(host=settings.API_HOST, port=settings.API_PORT)
-#client = EliteCraftClient(use_ngrok=True, ngrok_url=settings.OLLAMA_HOST_COLAB)
 
 # Page configuration
 st.set_page_config(
@@ -126,50 +127,10 @@ if query := st.chat_input("How do I build an agent?"):
                 # Display answer
                 st.markdown(response.answer)
 
-                # Display retrieved chunks
-                with st.expander("📚 Retrieved Documentation", expanded=False):
-                    for idx, chunk in enumerate(
-                        response.retrieved_chunks, 1
-                    ):
-                        st.markdown(f"### Chunk {idx}")
-
-                        # Display metadata
-                        col1, col2 = st.columns([2, 1])
-                        with col1:
-                            st.markdown(
-                                f"**Source:** [{chunk.url}]({chunk.url})"
-                            )
-                        with col2:
-                            similarity_pct = chunk.similarity * 100
-                            st.markdown(
-                                f"**Similarity:** "
-                                f":green[{similarity_pct:.1f}%]"
-                            )
-
-                        st.markdown(
-                            f"**Chunk ID:** {chunk.chunk_id_in_document}"
-                        )
-
-                        # Display full content
-                        st.markdown("**Content:**")
-                        st.code(chunk.content, language="markdown")
-
-                        if idx < len(response.retrieved_chunks):
-                            st.markdown("---")
-
                 # Add to history
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": response.answer,
-                    "chunks": [
-                        {
-                            "url": chunk.url,
-                            "chunk_id_in_document": chunk.chunk_id_in_document,
-                            "content": chunk.content,
-                            "similarity": chunk.similarity
-                        }
-                        for chunk in response.retrieved_chunks
-                    ]
+                    "content": response.answer
                 })
 
             except Exception as e:
