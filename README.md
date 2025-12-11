@@ -18,11 +18,17 @@ elite-craft/
 │       ├── model_provider.py                  # LLM & embedding model configuration
 │       ├── agent/                             # Agent implementation
 │       │   ├── __init__.py
-│       │   ├── crafter_agent.py               # Main RAG agent with LLM and retriever
-│       │   └── state.py                       # Agent state management (placeholder)
+│       │   └── crafter_agent.py               # Main RAG agent with LLM and retriever
 │       ├── tools/                             # Agent tools
 │       │   ├── __init__.py
-│       │   └── retriever.py                   # Semantic search retriever with pgvector
+│       │   ├── retriever.py                   # Semantic search retriever with pgvector
+│       │   └── handler.py                     # Tool factory with dependency injection
+│       ├── api/                               # REST API layer
+│       │   ├── __init__.py
+│       │   ├── fastapi_server.py              # FastAPI server with endpoints
+│       │   └── schemas.py                     # Pydantic request/response models
+│       ├── frontend/                          # User interface
+│       │   └── app.py                         # Streamlit chat interface
 │       ├── services/                          # Core pipeline services
 │       │   ├── __init__.py
 │       │   ├── crawling.py                    # Async web crawling (Crawl4AI)
@@ -43,7 +49,7 @@ elite-craft/
 │   ├── are_crawling_outputs_stochastic.py        # Crawl stability analysis
 │   └── are_db_chunks_and_crawled_chunks_same.py  # Database validation
 ├── .env.example                                  # Environment variables template
-├── pyproject.toml                             
+├── pyproject.toml
 └── README.md
 ```
 
@@ -80,13 +86,21 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 
 ### Core Components
 
+**Knowledge Base Pipeline:**
 1. **UpdateDBPipeline** (`services/update_db_pipeline.py`): Orchestrates the complete document ingestion workflow
 2. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown
 3. **Chunker** (`services/chunking.py`): Splits documents into semantic chunks
 4. **Embedder** (`services/embedding.py`): Generates vector embeddings for chunks
 5. **DatabaseUploader** (`services/database_uploading.py`): Manages Supabase operations
+
+**Agent System:**
 6. **Retriever** (`tools/retriever.py`): Performs semantic search with source filtering
-7. **Crafter Agent** (`agent/crafter_agent.py`): Main agent interface for user queries
+7. **Handler** (`tools/handler.py`): Factory for creating LangChain tools with proper dependency injection
+8. **Crafter Agent** (`agent/crafter_agent.py`): RAG-powered agent with strict anti-hallucination guardrails
+
+**Application Layer:**
+9. **FastAPI Server** (`api/fastapi_server.py`): REST API exposing `/api/ask` and `/api/update-db` endpoints
+10. **Streamlit App** (`frontend/app.py`): User-friendly chat interface for querying the agent
 
 ---
 

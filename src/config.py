@@ -58,12 +58,13 @@ class Settings(BaseSettings):
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     #LLM_NAME: str = "qwen2.5-coder:3b"
-    #LLM_NAME: str = "qwen2.5-coder:7b"
+    LLM_NAME: str = "qwen2.5-coder:7b"
     #LLM_NAME: str = "qwen3-coder:30b"
-    LLM_NAME: str = "qwen3-coder:480b-cloud"
+    #LLM_NAME: str = "qwen3-coder:480b-cloud"
     #LLM_NAME: str = "gpt-oss:20b-cloud"
 
     # API server configuration
+    # Must use these variable
     API_HOST: str = "localhost"
     API_PORT: int = 8000
 

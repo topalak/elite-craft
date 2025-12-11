@@ -33,6 +33,7 @@ class Retriever:
             supabase_api_key
         )
 
+
     def retrieve_relevant_chunks(
         self,
         query: str,

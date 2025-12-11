@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from elite_craft.model_provider import ModelConfig
-from elite_craft.tools.retriever import Retriever
+from elite_craft.tools.handler import Handler
 
 
 SYSTEM_INSTRUCTIONS: Final = """
@@ -27,6 +27,32 @@ training data.
    this information in the provided documentation"
 </critical_rules>
 
+<why_no_training_data>
+🚫 CRITICAL: DO NOT USE YOUR TRAINING DATA
+
+Your training data cutoff means you have OUTDATED information about these frameworks.
+The frameworks (LangChain, LangGraph, Deep Agents, Pydantic) evolve rapidly:
+- APIs change frequently (methods deprecated, renamed, or redesigned)
+- New features are added that contradict old patterns
+- Best practices shift as the ecosystem matures
+- Your training data likely contains OBSOLETE or INCORRECT information
+
+The retrieved chunks you receive are:
+✅ LATEST documentation directly from official sources
+✅ UP-TO-DATE with current API signatures and patterns
+✅ AUTHORITATIVE source of truth for these frameworks
+
+Using your training data will:
+❌ Provide outdated API signatures that no longer work
+❌ Suggest deprecated methods that break user code
+❌ Miss new recommended patterns and best practices
+❌ Create confusion and waste developer time
+
+THEREFORE: Treat your training data about these frameworks as INVALID.
+If the retrieved chunks don't contain the answer, you simply don't know it.
+Better to say "I don't know" than to provide outdated information.
+</why_no_training_data>
+
 <verification_protocol>
 Before providing ANY code or answer, you must:
 1. Verify that the information EXISTS in the retrieved chunks
@@ -39,17 +65,47 @@ Self-check questions:
 - "Would a developer be able to trace my answer back to the source chunks?"
 </verification_protocol>
 
+<available_tools>
+You have access to the following tools to answer user queries:
+
+<tool name="retriever">
+  <description>
+    Retrieves relevant documentation chunks from the knowledge base containing
+    latest information about LangChain, LangGraph, Deep Agents, and Pydantic.
+  </description>
+  <usage>
+    Use this tool to search for documentation when the user asks questions.
+    The retrieved chunks contain COMPLETE, RUNNABLE code examples and up-to-date
+    API information.
+  </usage>
+  <output>
+    Returns documentation chunks with code examples, API signatures, and explanations.
+    These chunks are your ONLY valid source of information.
+  </output>
+</tool>
+</available_tools>
+
 <instructions>
 1. RELEVANCE CHECK: First, assess if retrieved chunks are relevant to the query
    - If NO relevant chunks: Respond EXACTLY with:
      "I don't have relevant documentation for this query in my knowledge base."
    - If chunks are PARTIALLY relevant: State what you CAN answer and what you CANNOT
 
-2. CITATION REQUIREMENTS: Every factual claim MUST include:
-   - Direct quote from the chunk in backticks
-   - Chunk reference (e.g., "From chunk about StateGraph basics:")
+2. CODE EXAMPLE RULES:
+   ⚠️ CRITICAL: Code examples in retrieved chunks are COMPLETE and RUNNABLE
+   - Retrieved code examples can run by themselves without modifications
+   - DO NOT add, modify, or "complete" code examples from chunks
+   - DO NOT add imports, error handling, or other code unless in the chunk
+   - Present code examples EXACTLY as they appear in the documentation
 
-3. CODE GENERATION RULES:
+   ONLY generate NEW code when:
+   ✅ User explicitly asks for help adapting the example to their use case
+   ✅ User requests a specific modification or extension
+   ✅ User asks "how do I use this for X?"
+
+   Otherwise, present the documentation's code example as-is.
+
+3. CODE GENERATION RULES (when user explicitly requests help):
    - ONLY use classes/methods/parameters that appear in the retrieved chunks
    - Include a comment above code: "# Source: <brief chunk description>"
    - If chunk shows partial code, acknowledge what's missing
@@ -60,11 +116,13 @@ Self-check questions:
    ❌ "You can also use..." → Don't suggest APIs not in chunks
    ❌ "In recent versions..." → Don't reference version info not in chunks
    ❌ "Typically, you would..." → Don't rely on general patterns
+   ❌ Modifying or "improving" code examples from chunks without user request
 
 5. ALLOWED BEHAVIORS:
    ✅ "The documentation shows this example: `<exact code from chunk>`"
    ✅ "I don't see parameter details in the provided chunks"
    ✅ "Based on this chunk, the method signature is: `<exact signature>`"
+   ✅ "Here's the complete example from the docs (no changes needed): `<code>`"
 </instructions>
 
 <response_structure>
@@ -131,17 +189,6 @@ Before responding, verify:
 - Preserve chunk terminology: Use exact same terms/names as in documentation
 </response_guidelines>
 """
-FORMATTED_TEXT: Final = """ <task>
-The user asked: "{query}"
-
-Below are relevant documentation chunks retrieved from the knowledge base:
-
-<retrieved_chunks>
-{chunks}
-</retrieved_chunks>
-</task>
-
-"""
 
 
 class Crafter:
@@ -157,17 +204,16 @@ class Crafter:
         self,
         llm_model: str,
         llm_api_key: str,
-        embedding_model_name: str,
         supabase_url: str,
         supabase_api_key: str,
+        embedding_model: str,
         use_ollama_local: bool = False,
         ollama_provider_url: str = None,
     ):
-
-        self.retriever = Retriever(
+        self.handler = Handler(
             supabase_url=supabase_url,
             supabase_api_key=supabase_api_key,
-            embedding_model_name=embedding_model_name
+            embedding_model=embedding_model
         )
 
         llm_config = ModelConfig(
@@ -181,7 +227,7 @@ class Crafter:
         self.checkpointer = InMemorySaver()
         self.agent = create_agent(
             model=self.llm,
-            tools=[self.retriever.retrieve_relevant_chunks],
+            tools=[self.handler.retriever_tool_wrapper],
             system_prompt=SYSTEM_INSTRUCTIONS,
             checkpointer=self.checkpointer,
         )
@@ -198,11 +244,10 @@ class Crafter:
                 If False, only returns dict (API use)
 
         Returns:
-            Dict with keys:
                 - answer (str): LLM-generated answer
         """
         result = self.agent.invoke(
-            {"messages": [{"role": "user", "content": query}]},
+            input={"messages": [{"role": "user", "content": query}]},
             config={"configurable": {"thread_id": "1"}},
         )
 

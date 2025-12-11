@@ -22,16 +22,6 @@ class QuestionRequest(BaseModel):
     )
 
 
-class RetrievedChunk(BaseModel):
-    """
-    Model for a single retrieved documentation chunk.
-    """
-    url: str = Field(description="Source URL of the documentation")
-    chunk_id_in_document: int = Field(description="Chunk position in document")
-    content: str = Field(description="Text content of the chunk")
-    similarity: float = Field(description="Similarity score (0-1)")
-
-
 class QuestionResponse(BaseModel):
     """
     Response model for ask endpoint.

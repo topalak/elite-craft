@@ -46,12 +46,13 @@ app.add_middleware(
 # Initialize Crafter agent ONCE when server starts (not per request!)
 crafter = Crafter(
     llm_model=settings.LLM_NAME,
+    llm_api_key=settings.OLLAMA_API_KEY,
     use_ollama_local=settings.USE_OLLAMA_LOCAL,
     ollama_provider_url=settings.OLLAMA_HOST_LOCAL,
-    llm_api_key=settings.OLLAMA_API_KEY,
-    embedding_model_name=settings.EMBEDDING_MODEL,
     supabase_url=settings.SUPABASE_URL,
-    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
+    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+    embedding_model = settings.EMBEDDING_MODEL,
+
 )
 
 logger.info("✅ Crafter agent initialized")
@@ -94,8 +95,6 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
         HTTPException: If agent processing fails
     """
     try:
-        logger.info(f"Received question: {request.query[:25]}...")
-
         # Call Crafter agent
         result = crafter.ask(request.query)
 

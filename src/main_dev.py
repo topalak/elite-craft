@@ -31,7 +31,7 @@ if __name__ == "__main__":
         use_ollama_local=settings.USE_OLLAMA_LOCAL,
         ollama_provider_url=settings.OLLAMA_HOST_LOCAL,
         llm_api_key=settings.OLLAMA_API_KEY,
-        embedding_model_name=settings.EMBEDDING_MODEL,
+        embedding_model=settings.EMBEDDING_MODEL,
         supabase_url=settings.SUPABASE_URL,
         supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
     )
