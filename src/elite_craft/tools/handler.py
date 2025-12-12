@@ -1,7 +1,13 @@
 from langchain.tools import tool
+from pydantic import BaseModel, Field
 
 from elite_craft.tools.retriever import Retriever
 
+
+class RetrieverSchema(BaseModel):
+
+
+    query: str = Field(description='')
 
 class Handler:
     """

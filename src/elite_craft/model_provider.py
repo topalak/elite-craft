@@ -30,7 +30,7 @@ class ModelConfig:
         num_ctx: int = None,
         model_provider_url: str = None,
         reasoning: bool = False,
-        temperature: int = 0,
+        temperature: float = 0,
         use_ollama_local: bool = False,
         api_key: str = None,
         use_groq: bool = None,
