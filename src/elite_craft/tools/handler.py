@@ -41,7 +41,7 @@ class Handler:
             documentation knowledge base
         """
         @tool("retriever_tool")
-        def retriever_tool(query: str, source_filter: str = None) -> list[dict]:
+        def retriever_tool(query: str) -> list[dict]:
             """
             Retrieve relevant documentation chunks using semantic search.
 
@@ -50,16 +50,13 @@ class Handler:
 
             Args:
                 query: Search query describing what information you need
-                source_filter: Optional filter by source name (e.g., 'langchain', 'langgraph')
 
             Returns:
                 List of relevant documentation chunks with metadata
             """
             response = self.retriever.retrieve_relevant_chunks(
                 query=query,
-                source_filter=source_filter
             )
-            # TODO: convert list to single str
             return response
 
         return retriever_tool
