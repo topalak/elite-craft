@@ -62,8 +62,9 @@ class Settings(BaseSettings):
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     #LLM_NAME: str = "ministral-3:14b-cloud"
+    LLM_NAME: str = "ministral-3:8b-cloud"
     #LLM_NAME: str = "qwen3-coder:30b"
-    LLM_NAME: str = "gpt-oss:20b-cloud"
+    #LLM_NAME: str = "gpt-oss:20b-cloud"
 
     # API server configuration
     # Must use these variable
@@ -84,7 +85,7 @@ class Settings(BaseSettings):
     # WARNING: Changing CHUNK_SIZE requires re-ingesting ALL documents
     # This value affects knowledge base quality. Test retrieval before production.
     CHUNK_SIZE: int = Field(
-        default=1000,
+        default=2000,
         ge=100,
         le=8000,
         description=(

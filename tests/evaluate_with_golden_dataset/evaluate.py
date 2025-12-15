@@ -32,36 +32,52 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 class ChunkEvalRubric(BaseModel):
-    """LLM follows this to evaluate retrieval quality."""
+    """
+    Code-focused evaluation rubric for retrieval quality.
 
-    # Step 1: Relevance filtering
-    relevant_chunk_count: int = Field(
-        description="How many chunks are actually relevant?")
-    relevance_threshold_met: bool = Field(
-        description="Are >= 60% of chunks relevant?")
+    Context: The agent's primary purpose is writing code, so chunks must contain
+    implementation details, code examples, or clear explanations for coding.
 
-    # Step 2: Coverage (only for relevant chunks)
-    query_fully_covered: bool = Field(
-        description="Do relevant chunks have ALL info needed to answer?")
-   # missing_aspects: List[str] = Field(
-    #    description="What key aspects are missing, if any?")
+    Scoring system (4 criteria, 1 point each):
+    - has_implementation_details: 1 point - Code/Implementation Coverage
+    - code_examples_intact: 1 point - Code Quality
+    - majority_are_relevant: 1 point - Precision
+    - information_is_accessible: 1 point - Usability
+    - Max score: 4 points
+    """
 
-    # Step 3: Quality checks
-    contains_contradictions: bool = Field(
-        description="Do chunks contradict each other?")
-    #has_outdated_info: bool = Field(
-    #    description="Any deprecated/outdated patterns?")
+    has_implementation_details: bool = Field(
+        description=(
+            "Do chunks contain implementation details needed to write code? "
+            "This includes: working code examples, API usage patterns, function signatures, "
+            "or clear step-by-step explanations for implementation. "
+            "YES if chunks enable code generation. NO if only high-level concepts."
+        )
+    )
 
-    # Step 4: Ranking quality
-    top_chunk_is_relevant: bool = Field(
-        description="Is the #1 ranked chunk actually relevant?")
+    code_examples_intact: bool = Field(
+        description=(
+            "Are code examples complete and unbroken? "
+            "YES if code examples are not cut off mid-function/mid-block. "
+            "NO if code is truncated, missing imports, or split across chunks making it unusable. "
+            "If no code examples exist, mark YES (not applicable)."
+        )
+    )
 
-    # Overall
-    passed: bool = Field(
-        description="Overall: good enough to generate accurate answer?")
-    failure_reason: Optional[str] = Field(
-        default=None,
-        description="If failed, why?"
+    majority_are_relevant: bool = Field(
+        description="Are most chunks (>=50%) actually relevant to the query?"
+    )
+
+    information_is_accessible: bool = Field(
+        description="Is the implementation info clear and easy to extract (not buried in noise)?"
+    )
+
+    score: int = Field(
+        description="Total score: sum of all True values. Range: 0-4"
+    )
+
+    explanation: str = Field(
+        description="Brief explanation of the evaluation (1-2 sentences)"
     )
 
 
@@ -107,25 +123,33 @@ class AggregatedMetrics(BaseModel):
     """Aggregated metrics across all queries."""
 
     total_queries: int
-    passed_queries: int
-    failed_queries: int
-    pass_rate: float
+    avg_score: float = Field(description="Average score across all queries (0-4)")
+    max_possible_score: int = Field(default=4, description="Maximum possible score per query")
 
-    avg_relevant_chunk_count: float
-    avg_chunk_count: float
-    relevance_threshold_met_rate: float
-
-    query_fully_covered_rate: float
-    top_chunk_relevant_rate: float
-
-    contradiction_rate: float
-    outdated_info_rate: float
-
-    avg_execution_time_ms: float
-
-    failure_reasons: dict[str, int] = Field(
-        description="Counts of each failure reason"
+    # Binary metric rates (4 criteria)
+    has_core_information_rate: float = Field(
+        description="Percentage with core information"
     )
+    no_contradictions_rate: float = Field(
+        description="Percentage with no contradictions"
+    )
+    majority_are_relevant_rate: float = Field(
+        description="Percentage where >=50% chunks are relevant"
+    )
+    information_is_accessible_rate: float = Field(
+        description="Percentage where info is easy to extract"
+    )
+
+    # Score distribution (0-4)
+    score_4_count: int = Field(description="Queries with perfect score (4/4)")
+    score_3_count: int = Field(description="Queries with score 3/4")
+    score_2_count: int = Field(description="Queries with score 2/4")
+    score_1_count: int = Field(description="Queries with score 1/4")
+    score_0_count: int = Field(description="Queries with score 0/4")
+
+    # Performance
+    avg_chunk_count: float
+    avg_execution_time_ms: float
 
 
 # ============================================================================
@@ -302,26 +326,41 @@ class ChunkQualityJudge:
             for i, chunk in enumerate(chunks)
         ])
 
-        prompt = f"""Evaluate if the retrieved chunks can answer this query.
-Return JSON matching the ChunkEvalRubric schema.
+        prompt = f"""Evaluate the retrieved chunks using a 4-criteria binary scoring system.
 
 Query: {query}
 
 Retrieved chunks ({len(chunks)} total):
 {chunks_text}
 
-Evaluation criteria:
-1. Count how many chunks are actually relevant to the query
-2. Check if >= 60% of chunks are relevant
-3. Check if relevant chunks have ALL information needed to fully answer the query
-4. List any missing key aspects (empty list if none)
-5. Check for contradictions between chunks
-6. Check for outdated/deprecated information
-7. Check if the #1 ranked chunk is relevant
-8. Overall: Can these chunks generate an accurate answer?
-9. If failed, explain why in one sentence
+Evaluate these FOUR criteria (1 point each):
 
-Be strict: if chunks are missing key info, mark query_fully_covered=False.
+1. **has_core_information** (Coverage)
+   - Do the chunks contain the core/key facts needed to answer the query?
+   - YES = has essential information to construct an accurate answer
+   - NO = missing critical facts or context
+
+2. **no_contradictions** (Consistency)
+   - Are the chunks consistent with each other?
+   - YES = all chunks agree, no conflicting information
+   - NO = chunks contradict each other on key points
+
+3. **majority_are_relevant** (Precision)
+   - Are most chunks (>=50%) actually relevant to the query?
+   - YES = at least half of the chunks relate to the query
+   - NO = mostly noise/irrelevant content
+
+4. **information_is_accessible** (Usability)
+   - Is the answer clear and easy to extract from the chunks?
+   - YES = answer is straightforward to find, not buried in noise
+   - NO = answer is scattered or hard to piece together
+
+Calculate score:
+- Count how many criteria are True (each worth 1 point)
+- Total score range: 0-4
+
+Provide a brief explanation (1-2 sentences) justifying your evaluation.
+
 Return ONLY valid JSON matching ChunkEvalRubric schema."""
 
         try:
@@ -331,15 +370,12 @@ Return ONLY valid JSON matching ChunkEvalRubric schema."""
             logger.error(f"Evaluation failed: {e}")
             # Return a failed evaluation
             return ChunkEvalRubric(
-                relevant_chunk_count=0,
-                relevance_threshold_met=False,
-                query_fully_covered=False,
-                missing_aspects=["Evaluation error"],
-                contains_contradictions=False,
-                has_outdated_info=False,
-                top_chunk_is_relevant=False,
-                passed=False,
-                failure_reason=f"Evaluation error: {str(e)}"
+                has_core_information=False,
+                no_contradictions=False,
+                majority_are_relevant=False,
+                information_is_accessible=False,
+                score=0,
+                explanation=f"Evaluation error: {str(e)}"
             )
 
 
@@ -465,8 +501,11 @@ class EvaluationPipeline:
             results.append(eval_result)
 
             logger.info(
-                f"  ✓ Passed: {rubric_scores.passed}, "
-                f"Relevant: {rubric_scores.relevant_chunk_count}/{retrieval_result.chunk_count}"
+                f"  Score: {rubric_scores.score}/4 "
+                f"[Core: {rubric_scores.has_core_information}, "
+                f"NoContr: {rubric_scores.no_contradictions}, "
+                f"Relevant: {rubric_scores.majority_are_relevant}, "
+                f"Accessible: {rubric_scores.information_is_accessible}]"
             )
 
         # Save results
@@ -499,49 +538,55 @@ class EvaluationPipeline:
             Aggregated metrics
         """
         total = len(results)
-        passed = sum(1 for r in results if r.rubric_scores.passed)
 
-        failure_reasons = {}
-        for r in results:
-            if not r.rubric_scores.passed and r.rubric_scores.failure_reason:
-                reason = r.rubric_scores.failure_reason
-                failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+        # Calculate average score
+        total_score = sum(r.rubric_scores.score for r in results)
+        avg_score = total_score / total if total > 0 else 0
+
+        # Calculate binary metric rates (4 criteria)
+        has_core_info_count = sum(
+            1 for r in results if r.rubric_scores.has_core_information
+        )
+        no_contradictions_count = sum(
+            1 for r in results if r.rubric_scores.no_contradictions
+        )
+        majority_relevant_count = sum(
+            1 for r in results if r.rubric_scores.majority_are_relevant
+        )
+        accessible_count = sum(
+            1 for r in results if r.rubric_scores.information_is_accessible
+        )
+
+        # Score distribution (0-4)
+        score_4 = sum(1 for r in results if r.rubric_scores.score == 4)
+        score_3 = sum(1 for r in results if r.rubric_scores.score == 3)
+        score_2 = sum(1 for r in results if r.rubric_scores.score == 2)
+        score_1 = sum(1 for r in results if r.rubric_scores.score == 1)
+        score_0 = sum(1 for r in results if r.rubric_scores.score == 0)
 
         return AggregatedMetrics(
             total_queries=total,
-            passed_queries=passed,
-            failed_queries=total - passed,
-            pass_rate=passed / total if total > 0 else 0,
+            avg_score=avg_score,
+            max_possible_score=4,
 
-            avg_relevant_chunk_count=sum(
-                r.rubric_scores.relevant_chunk_count for r in results
-            ) / total if total > 0 else 0,
+            has_core_information_rate=has_core_info_count / total if total > 0 else 0,
+            no_contradictions_rate=no_contradictions_count / total if total > 0 else 0,
+            majority_are_relevant_rate=majority_relevant_count / total if total > 0 else 0,
+            information_is_accessible_rate=accessible_count / total if total > 0 else 0,
+
+            score_4_count=score_4,
+            score_3_count=score_3,
+            score_2_count=score_2,
+            score_1_count=score_1,
+            score_0_count=score_0,
+
             avg_chunk_count=sum(
                 r.retrieval_result.chunk_count for r in results
-            ) / total if total > 0 else 0,
-            relevance_threshold_met_rate=sum(
-                1 for r in results if r.rubric_scores.relevance_threshold_met
-            ) / total if total > 0 else 0,
-
-            query_fully_covered_rate=sum(
-                1 for r in results if r.rubric_scores.query_fully_covered
-            ) / total if total > 0 else 0,
-            top_chunk_relevant_rate=sum(
-                1 for r in results if r.rubric_scores.top_chunk_is_relevant
-            ) / total if total > 0 else 0,
-
-            contradiction_rate=sum(
-                1 for r in results if r.rubric_scores.contains_contradictions
-            ) / total if total > 0 else 0,
-            outdated_info_rate=sum(
-                1 for r in results if r.rubric_scores.has_outdated_info
             ) / total if total > 0 else 0,
 
             avg_execution_time_ms=sum(
                 r.retrieval_result.execution_time_ms for r in results
-            ) / total if total > 0 else 0,
-
-            failure_reasons=failure_reasons
+            ) / total if total > 0 else 0
         )
 
     def print_report(self, metrics: AggregatedMetrics):
@@ -557,32 +602,25 @@ class EvaluationPipeline:
 
         print(f"\n📊 OVERALL PERFORMANCE")
         print(f"  Total Queries: {metrics.total_queries}")
-        print(f"  Passed: {metrics.passed_queries}")
-        print(f"  Failed: {metrics.failed_queries}")
-        print(f"  Pass Rate: {metrics.pass_rate:.1%}")
+        print(f"  Average Score: {metrics.avg_score:.2f}/{metrics.max_possible_score}")
+        print(f"  Score Percentage: {(metrics.avg_score / metrics.max_possible_score * 100):.1f}%")
 
-        print(f"\n📝 RELEVANCE METRICS")
-        print(f"  Avg Chunks Retrieved: {metrics.avg_chunk_count:.1f}")
-        print(f"  Avg Relevant Chunks: {metrics.avg_relevant_chunk_count:.1f}")
-        print(f"  Relevance Threshold Met (>=60%): {metrics.relevance_threshold_met_rate:.1%}")
-        print(f"  Top Chunk Relevant: {metrics.top_chunk_relevant_rate:.1%}")
+        print(f"\n📈 SCORE DISTRIBUTION")
+        print(f"  Perfect (4/4): {metrics.score_4_count} queries ({metrics.score_4_count / metrics.total_queries * 100:.1f}%)")
+        print(f"  Good (3/4):    {metrics.score_3_count} queries ({metrics.score_3_count / metrics.total_queries * 100:.1f}%)")
+        print(f"  Fair (2/4):    {metrics.score_2_count} queries ({metrics.score_2_count / metrics.total_queries * 100:.1f}%)")
+        print(f"  Poor (1/4):    {metrics.score_1_count} queries ({metrics.score_1_count / metrics.total_queries * 100:.1f}%)")
+        print(f"  Failed (0/4):  {metrics.score_0_count} queries ({metrics.score_0_count / metrics.total_queries * 100:.1f}%)")
 
-        print(f"\n✅ COVERAGE & QUALITY")
-        print(f"  Query Fully Covered: {metrics.query_fully_covered_rate:.1%}")
-        print(f"  Contains Contradictions: {metrics.contradiction_rate:.1%}")
-        print(f"  Has Outdated Info: {metrics.outdated_info_rate:.1%}")
+        print(f"\n✅ QUALITY METRICS (% of queries passing each criterion)")
+        print(f"  Has Core Information:     {metrics.has_core_information_rate:.1%}")
+        print(f"  No Contradictions:        {metrics.no_contradictions_rate:.1%}")
+        print(f"  Majority Are Relevant:    {metrics.majority_are_relevant_rate:.1%}")
+        print(f"  Information Accessible:   {metrics.information_is_accessible_rate:.1%}")
 
         print(f"\n⚡ PERFORMANCE")
+        print(f"  Avg Chunks Retrieved: {metrics.avg_chunk_count:.1f}")
         print(f"  Avg Execution Time: {metrics.avg_execution_time_ms:.0f}ms")
-
-        if metrics.failure_reasons:
-            print(f"\n❌ FAILURE REASONS")
-            for reason, count in sorted(
-                metrics.failure_reasons.items(),
-                key=lambda x: x[1],
-                reverse=True
-            ):
-                print(f"  {count:2d}x - {reason}")
 
         print("\n" + "="*70 + "\n")
 

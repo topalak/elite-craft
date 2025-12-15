@@ -140,10 +140,12 @@ async def main():
         supabase_url=settings.SUPABASE_URL,
         supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
         chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP
     )
 
     urls = [
         "https://docs.langchain.com/oss/python/langchain/agents",
+        '''
         "https://docs.langchain.com/oss/python/langchain/messages",
         "https://docs.langchain.com/oss/python/langchain/models",
         "https://docs.langchain.com/oss/python/langchain/tools",
@@ -161,6 +163,16 @@ async def main():
         "https://reference.langchain.com/python/langchain/models/",
         "https://reference.langchain.com/python/langchain/messages/",
         "https://reference.langchain.com/python/langchain/tools/",
+
+
+        "https://docs.langchain.com/oss/python/langgraph/overview",
+        "https://docs.langchain.com/oss/python/langgraph/quickstart",
+        "https://docs.langchain.com/oss/python/langgraph/install",
+        "https://docs.langchain.com/oss/python/langgraph/local-server",
+        "https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph",
+        "https://docs.langchain.com/oss/python/langgraph/workflows-agents",
+        "https://docs.langchain.com/oss/python/langgraph/application-structure"
+        '''
     ]
 
     # Process all URLs concurrently

@@ -5,9 +5,9 @@ from elite_craft.tools.retriever import Retriever
 
 
 class RetrieverSchema(BaseModel):
+    """Schema for retriever tool input validation."""
 
-
-    query: str = Field(description='')
+    query: str = Field(description='Search query describing the information needed from documentation')
 
 class Handler:
     """
@@ -46,7 +46,7 @@ class Handler:
             LangChain tool that performs semantic search against
             documentation knowledge base
         """
-        @tool("retriever_tool")
+        @tool("retriever_tool", args_schema=RetrieverSchema)
         def retriever_tool(query: str) -> list[dict]:
             """
             Retrieve relevant documentation chunks using semantic search.
