@@ -36,3 +36,6 @@ out/
 
 # Environment Variables
 .env
+
+# Evalute folder
+evaluate/

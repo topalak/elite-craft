@@ -2,6 +2,8 @@ import logging
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from config import settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ class Chunker:
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            keep_separator="start",
+            keep_separator=True,
             separators=[
                 "\n## ",  # H2 - Major sections
                 "\n### ",  # H3 - Subsections
@@ -37,42 +39,42 @@ class Chunker:
             ]
         )
 
-    def _count_code_fences(self, text: str) -> int:
-        """Count number of ``` code fence markers in text."""
-        return text.count("```")
+    @staticmethod
+    def _has_incomplete_code_block(chunk: str) -> bool:
+        """Check if chunk has incomplete code blocks (openings != closings)."""
+        opening_number = chunk.count("Copy\n```")
+        closing_all = chunk.count("```")
+        closing_number = opening_number - closing_all
 
-    def _has_incomplete_code_block(self, chunk: str) -> bool:
-        """Check if chunk has incomplete code block (odd number of ```)."""
-        return self._count_code_fences(chunk) % 2 != 0
+        return opening_number != closing_number
 
-    def _find_code_block_position(self, chunk: str) -> str:
+    @staticmethod
+    def _find_code_opening_position(chunk: str) -> str:
         """
-        Determine if incomplete code block is closer to start or end.
+        Find if 'Copy```' (code opening) is at start or end of chunk.
 
         Returns:
-            'start' if closer to beginning, 'end' if closer to end
+            'start' if closer to beginning
+            'end' if closer to end
+            'none' if no opening found
         """
-        first_fence = chunk.find("```")
-        last_fence = chunk.rfind("```")
-        chunk_midpoint = len(chunk) // 2
+        first_opening = chunk.find("Copy\n```")
+        if first_opening == -1:
+            return "none"
 
-        # If first fence is after midpoint, code is at end
-        if first_fence > chunk_midpoint:
-            return "end"
-        # If last fence is before midpoint, code is at start
-        elif last_fence < chunk_midpoint:
-            return "start"
-        # Default: treat as end to preserve code
-        else:
-            return "end"  #todo this is too rare scenario but lets set it as start to keep above information for code example
+        chunk_midpoint = len(chunk) // 2
+        return "start" if first_opening < chunk_midpoint else "end"
 
     def _fix_incomplete_code_blocks(self, chunks: list[str]) -> list[str]:
         """
         Fix chunks with incomplete code blocks.
 
         Strategy:
-        - If incomplete code is at START: Remove it (will appear in previous chunk)
-        - If incomplete code is at END: Extend chunk to include complete code from next chunk
+        - Code blocks start with 'Copy\n```' and end with '```' (without Copy)
+        - If chunk has complete blocks (openings == closings): keep as is
+        - If 'Copy```' at START: extend forward until closing ``` (no size limit for code)
+        - If 'Copy```' at END: remove and prepend to next chunk
+        - If remaining part is too small: prepend to next chunk and reprocess
 
         Args:
             chunks: List of text chunks
@@ -83,77 +85,116 @@ class Chunker:
         if not chunks:
             return chunks
 
+        minimum_chunk_size = settings.MINIMUM_CHUNK_SIZE
         fixed_chunks = []
-        skip_next = False
+        i = 0
 
-        for i, chunk in enumerate(chunks):
-            if skip_next:
-                skip_next = False
-                continue
+        #len(chunks) = 5 (indices 0, 1, 2, 3, 4)
+        while i < len(chunks):
+            chunk = chunks[i]
 
+            # If chunk has complete code blocks, keep it
             if not self._has_incomplete_code_block(chunk):
                 fixed_chunks.append(chunk)
+                i += 1
                 continue
 
-            position = self._find_code_block_position(chunk)
+            position = self._find_code_opening_position(chunk)
 
-            if position == "start":
-                # Remove incomplete code at start
-                first_fence = chunk.find("```")
-                # Find end of incomplete code block line
-                newline_after_fence = chunk.find("\n", first_fence)
-                if newline_after_fence != -1:  #todo check what is the value of newline_after_fence, why did we define -1
-                    cleaned_chunk = chunk[newline_after_fence + 1:].lstrip()
-                else:
-                    cleaned_chunk = ""
+            if position == "none":
+                # No code opening found - might have only closing ``` from previous chunk
+                # Should already be handled, but keep chunk as is
+                fixed_chunks.append(chunk)
+                logger.debug("Chunk has incomplete code but no 'Copy```' opening found")
+                i += 1
 
-                if cleaned_chunk.strip():
-                    fixed_chunks.append(cleaned_chunk)
-                else:
-                    logger.debug(
-                        f"Removed chunk entirely - contained only incomplete code block at start")
+            elif position == "start":
+                # Code block starts here but incomplete - extend until closing ``` (no size limit)
+                extended_chunk = chunk
+                j = i + 1
+                found_closing = False
 
-            else:  # position == "end"
-                # Try to extend into next chunk to complete code block
-                if i + 1 < len(chunks):
-                    next_chunk = chunks[i + 1]
-                    # Find closing fence in next chunk
-                    closing_fence = next_chunk.find("```")
+                while j < len(chunks):
+                    next_chunk = chunks[j]
+                    # Look for closing ``` (not part of Copy\n```)
+                    closing_pos = next_chunk.find("```")  #todo IT RETURNS A INDEX SUCH AS 563
 
-                    if closing_fence != -1:
-                        # Find end of the closing fence line
-                        newline_after_close = next_chunk.find("\n",
-                                                              closing_fence + 3)
+                    # Make sure it's not part of another Copy```
+                    if closing_pos != -1:
+                        # Check if it's preceded by Copy\n
+                        if closing_pos >= 5 and next_chunk[closing_pos - 5:closing_pos] == "Copy\n":
+                            # This is an opening, not a closing - include and continue
+                            extended_chunk = extended_chunk + "\n" + next_chunk
+                            j += 1
+                            continue
+
+                        # Found actual closing
+                        newline_after_close = next_chunk.find("\n", closing_pos + 3)
                         if newline_after_close != -1:
                             code_end = newline_after_close + 1
                         else:
                             code_end = len(next_chunk)
 
-                        # Merge chunks to complete code block
-                        extended_chunk = chunk + "\n" + next_chunk[:code_end]
-                        fixed_chunks.append(extended_chunk)
+                        extended_chunk = extended_chunk + "\n" + next_chunk[:code_end]
 
-                        # Update next chunk to remove merged portion
+                        # Handle remaining part
                         remaining = next_chunk[code_end:].lstrip()
                         if remaining.strip():
-                            chunks[i + 1] = remaining
-                        else:
-                            skip_next = True
+                            if len(remaining) < minimum_chunk_size:
+                                # Too small - prepend to next chunk if exists
+                                if j + 1 < len(chunks):
+                                    chunks[j + 1] = remaining + "\n" + chunks[j + 1]
+                                    logger.info(
+                                        f"Prepended small remaining ({len(remaining)} chars) to next chunk")
+                                else:
+                                    # Last chunk - append to current
+                                    extended_chunk = extended_chunk + "\n" + remaining
+                                    logger.info(
+                                        f"Appended small remaining ({len(remaining)} chars) to completed chunk")
+                            else:
+                                # Large enough - update chunk for next iteration
+                                chunks[j] = remaining
+                                j -= 1  # Adjust because we'll increment below
 
-                        logger.info(
-                            f"Extended chunk by {code_end} chars to complete code block "
-                            f"(new size: {len(extended_chunk)} vs limit: {self.chunk_size})"
-                        )
+                        found_closing = True
+                        break
                     else:
-                        # No closing fence found, keep as is and log warning
-                        fixed_chunks.append(chunk)
-                        logger.warning(
-                            "Incomplete code block at end but no closing fence in next chunk")
+                        # No closing in this chunk - include entire chunk and continue
+                        extended_chunk = extended_chunk + "\n" + next_chunk
+                        j += 1
+
+                if found_closing:
+                    fixed_chunks.append(extended_chunk)
+                    logger.info(
+                        f"Extended chunk to complete code block (size: {len(extended_chunk)}, no size limit for code)")
+                    i = j + 1
                 else:
-                    # Last chunk with incomplete code - keep as is
+                    # Never found closing - keep as is with warning
                     fixed_chunks.append(chunk)
-                    logger.warning(
-                        "Last chunk has incomplete code block - keeping as is")
+                    logger.warning("Code opening at start but no closing found in remaining chunks")
+                    i += 1
+
+            else:  # position == "end"
+                # Code opening at end - remove and prepend to next chunk
+                opening_pos = chunk.find("Copy\n```")
+                chunk_before_code = chunk[:opening_pos].rstrip()
+                code_part = chunk[opening_pos:]
+
+                if chunk_before_code.strip():
+                    fixed_chunks.append(chunk_before_code)
+
+                if i + 1 < len(chunks):
+                    # Prepend code opening to next chunk
+                    chunks[i + 1] = code_part + "\n" + chunks[i + 1]
+                    logger.info(
+                        f"Moved code opening ({len(code_part)} chars) from end to next chunk")
+                else:
+                    # Last chunk - keep the incomplete code opening with warning
+                    if code_part.strip():
+                        fixed_chunks.append(code_part)
+                    logger.warning("Last chunk has incomplete code opening at end")
+
+                i += 1
 
         return fixed_chunks
 

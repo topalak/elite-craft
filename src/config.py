@@ -85,13 +85,18 @@ class Settings(BaseSettings):
     # WARNING: Changing CHUNK_SIZE requires re-ingesting ALL documents
     # This value affects knowledge base quality. Test retrieval before production.
     CHUNK_SIZE: int = Field(
-        default=2000,
+        default=1500,
         ge=100,
         le=8000,
-        description=(
-            "Maximum chunk size in characters for document ingestion. "
-        )
+        description="Default chunk size in characters. "
+
     )
+
+    MINIMUM_CHUNK_SIZE: int = Field(
+        default=500,
+        description="Minimum chunk size in characters. "
+    )
+
     CHUNK_OVERLAP: int = Field(
     default=200,
         ge=20,
