@@ -60,7 +60,8 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
+    EMBEDDING_MODEL: str = "mxbai-embed-large:latest"
+    #EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     #LLM_NAME: str = "ministral-3:14b-cloud"
     LLM_NAME: str = "ministral-3:8b-cloud"
     #LLM_NAME: str = "qwen3-coder:30b"
