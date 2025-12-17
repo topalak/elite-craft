@@ -113,18 +113,17 @@ class Chunker:
                 extended_chunk = chunk
                 j = i + 1
                 found_closing = False
+                chunks_j_modified = False  # Track if chunks[j] was modified with remaining
 
                 while j < len(chunks):
                     next_chunk = chunks[j]
                     # Look for closing ``` (not part of Copy\n```)
-                    closing_pos = next_chunk.find("```")  #todo IT RETURNS A INDEX SUCH AS 563
+                    closing_pos = next_chunk.find("```")
 
                     # Make sure it's not part of another Copy```
                     if closing_pos != -1:
                         # Check if it's preceded by Copy\n
                         if closing_pos >= 5 and next_chunk[closing_pos - 5:closing_pos] == "Copy\n":
-                            # This is an opening, not a closing - include and continue
-                            extended_chunk = extended_chunk + "\n" + next_chunk
                             j += 1
                             continue
 
@@ -154,20 +153,18 @@ class Chunker:
                             else:
                                 # Large enough - update chunk for next iteration
                                 chunks[j] = remaining
-                                j -= 1  # Adjust because we'll increment below
+                                chunks_j_modified = True
 
                         found_closing = True
                         break
                     else:
-                        # No closing in this chunk - include entire chunk and continue
-                        extended_chunk = extended_chunk + "\n" + next_chunk
                         j += 1
 
                 if found_closing:
                     fixed_chunks.append(extended_chunk)
                     logger.info(
                         f"Extended chunk to complete code block (size: {len(extended_chunk)}, no size limit for code)")
-                    i = j + 1
+                    i = j if chunks_j_modified else j + 1
                 else:
                     # Never found closing - keep as is with warning
                     fixed_chunks.append(chunk)
