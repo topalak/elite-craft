@@ -1,6 +1,6 @@
 --Create match_chunks function
 CREATE OR REPLACE FUNCTION match_chunks (
-    query_embedding vector(768),
+    query_embedding vector(1536),
     match_count int DEFAULT 8,    -- todo re-rank
     similarity_threshold float DEFAULT 0.7,
     source_filter varchar DEFAULT NULL
