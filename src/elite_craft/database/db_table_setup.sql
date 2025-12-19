@@ -16,7 +16,7 @@ CREATE TABLE chunks (
     document_id integer not null,
     chunk_id_in_document integer not null,
     content text not null,
-    embedding vector(768) not null,
+    embedding vector(1536) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
 
     -- Prevent duplicate chunks for same document

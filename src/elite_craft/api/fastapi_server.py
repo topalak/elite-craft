@@ -51,7 +51,7 @@ crafter = Crafter(
     ollama_provider_url=settings.OLLAMA_HOST_COLAB,
     supabase_url=settings.SUPABASE_URL,
     supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
-    embedding_model = settings.EMBEDDING_MODEL,
+    embedding_model=settings.EMBEDDING_MODEL,
 
 )
 
@@ -94,6 +94,14 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
     Raises:
         HTTPException: If agent processing fails
     """
+    # Input validation
+    if not request.query or not request.query.strip():
+        logger.warning("Empty query received")
+        raise HTTPException(
+            status_code=400,
+            detail="Query cannot be empty"
+        )
+
     try:
         # Call Crafter agent
         result = crafter.ask(request.query)
@@ -102,11 +110,38 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
             answer=result,
         )
 
-    except Exception as e:    #todo make it more special such as network error
-        logger.error(f"Error processing question: {e}")
+    except TimeoutError as e:
+        logger.error(f"LLM request timeout: {e}")
+        raise HTTPException(
+            status_code=504,  # Gateway Timeout
+            detail="AI service request timed out. Please try again."
+        )
+
+    except ConnectionError as e:
+        logger.error(f"LLM connection failed: {e}")
+        raise HTTPException(
+            status_code=503,  # Service Unavailable
+            detail="Cannot reach AI service. Please try again later."
+        )
+
+    except Exception as e:
+        # Check if it's a database-related error
+        error_name = type(e).__name__
+        error_msg = str(e)
+
+        if "supabase" in error_name.lower() or "postgrest" in error_name.lower():
+            logger.error(f"Database error: {error_msg}")
+            # Surface actual error in development for debugging
+            raise HTTPException(
+                status_code=503,
+                detail=f"Database error: {error_msg}"
+            )
+
+        # Unknown error - log with full context and surface the actual error
+        logger.exception(f"Unexpected error in ask_question: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process question: {str(e)}"
+            detail=f"Error: {error_msg}"
         )
 
 
@@ -133,6 +168,13 @@ async def update_database(
         POST http://localhost:8000/api/update-db
         Body: {"urls": ["https://docs.langchain.com/..."]}
     """
+    # Input validation
+    if not request.urls:
+        raise HTTPException(
+            status_code=400,
+            detail="URL list cannot be empty"
+        )
+
     try:
         logger.info(f"Database update requested for {len(request.urls)} URLs")
 
@@ -148,11 +190,25 @@ async def update_database(
             urls_count=len(request.urls)
         )
 
+    except TimeoutError as e:
+        logger.error(f"Database connection timeout: {e}")
+        raise HTTPException(
+            status_code=504,  # Gateway Timeout
+            detail="Database connection timed out. Please try again."
+        )
+
+    except ConnectionError as e:
+        logger.error(f"Cannot connect to database: {e}")
+        raise HTTPException(
+            status_code=503,  # Service Unavailable
+            detail="Database connection unavailable"
+        )
+
     except Exception as e:
-        logger.error(f"Error starting database update: {e}")
+        logger.exception(f"Unexpected error starting database update: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to start database update: {str(e)}"
+            detail="Failed to start database update"
         )
 
 

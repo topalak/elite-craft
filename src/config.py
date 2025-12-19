@@ -60,25 +60,31 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    EMBEDDING_MODEL: str = "mxbai-embed-large:latest"
-    #EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    #LLM_NAME: str = "ministral-3:14b-cloud"
+    #EMBEDDING_MODEL: str = "mxbai-embed-large:latest"
+    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     LLM_NAME: str = "ministral-3:8b-cloud"
-    #LLM_NAME: str = "qwen3-coder:30b"
-    #LLM_NAME: str = "gpt-oss:20b-cloud"
+
 
     # API server configuration
-    # Must use these variable
+    # These variables must be set
     API_HOST: str = "localhost"
     API_PORT: int = 8000
 
     USE_OLLAMA_LOCAL: bool = False
 
-    #LOGGING_LEVEL: int = logging.WARNING
+    # Thread number for agent's memory
+    DEFAULT_THREAD_ID: str = "1"
+
     LOGGING_LEVEL: int = logging.INFO
+    #LOGGING_LEVEL: int = logging.WARNING
 
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100
+
+    # Embedding batch size (chunks per API call)
+    # Lower values = more API calls but safer for large documents
+    # Higher values = fewer API calls but may exceed context limits
+    EMBEDDING_BATCH_SIZE: int = 20
 
     # Database "body_preview" column's preview size
     BODY_PREVIEW_END: int = 3000
@@ -87,8 +93,6 @@ class Settings(BaseSettings):
     # This value affects knowledge base quality. Test retrieval before production.
     CHUNK_SIZE: int = Field(
         default=2000,
-        ge=100,
-        le=8000,
         description="Default chunk size in characters. "
 
     )
@@ -100,8 +104,6 @@ class Settings(BaseSettings):
 
     CHUNK_OVERLAP: int = Field(
     default=300,
-        ge=20,
-        le=1500,
         description=(
             "Overlap value for each chunk. "
         )

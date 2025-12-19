@@ -16,7 +16,7 @@ SOURCE_MAPPING = {
     "docs.langchain.com": "langchain",
     "python.langchain.com": "langchain",
     "reference.langchain.com": "langchain",
-    # "docling-project.github.io": "docling",
+    "docling-project.github.io": "docling",
 }
 
 

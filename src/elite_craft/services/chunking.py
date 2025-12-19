@@ -31,11 +31,16 @@ class Chunker:
             chunk_overlap=chunk_overlap,
             keep_separator=True,
             separators=[
-                "\n## ",  # H2 - Major sections
-                "\n### ",  # H3 - Subsections
-                "\n#### ",  # H4 - Minor subsections
-                "\n```",  # Code blocks
-                "\n\n",  # Paragraph breaks
+                "\n### ",
+                "\n## ",
+                "\n# ",
+                "\nCopy\n```",
+                "Copy\n```",
+                "\n\n",
+                "\n",
+                ". ",
+                " ",
+                "",
             ]
         )
 
@@ -44,7 +49,7 @@ class Chunker:
         """Check if chunk has incomplete code blocks (openings != closings)."""
         opening_number = chunk.count("Copy\n```")
         closing_all = chunk.count("```")
-        closing_number = opening_number - closing_all
+        closing_number = closing_all - opening_number
 
         return opening_number != closing_number
 
@@ -89,7 +94,6 @@ class Chunker:
         fixed_chunks = []
         i = 0
 
-        #len(chunks) = 5 (indices 0, 1, 2, 3, 4)
         while i < len(chunks):
             chunk = chunks[i]
 
@@ -112,7 +116,6 @@ class Chunker:
                 # Code block starts here but incomplete - extend until closing ``` (no size limit)
                 extended_chunk = chunk
                 j = i + 1
-                found_closing = False
                 chunks_j_modified = False  # Track if chunks[j] was modified with remaining
 
                 while j < len(chunks):
@@ -155,18 +158,18 @@ class Chunker:
                                 chunks[j] = remaining
                                 chunks_j_modified = True
 
-                        found_closing = True
+                        # Found closing - append and exit
+                        fixed_chunks.append(extended_chunk)
+                        logger.info(
+                            f"Extended chunk to complete code block (size: {len(extended_chunk)}, no size limit for code)")
+                        i = j if chunks_j_modified else j + 1
                         break
                     else:
+                        # No closing found in this chunk - add it and continue searching
+                        extended_chunk = extended_chunk + "\n" + next_chunk
                         j += 1
-
-                if found_closing:
-                    fixed_chunks.append(extended_chunk)
-                    logger.info(
-                        f"Extended chunk to complete code block (size: {len(extended_chunk)}, no size limit for code)")
-                    i = j if chunks_j_modified else j + 1
                 else:
-                    # Never found closing - keep as is with warning
+                    # Loop completed without break - never found closing
                     fixed_chunks.append(chunk)
                     logger.warning("Code opening at start but no closing found in remaining chunks")
                     i += 1
@@ -193,6 +196,9 @@ class Chunker:
 
                 i += 1
 
+        length_of_chunks = [len(chunk) for chunk in chunks]
+        length_of_fixed_chunks = [len(chunk) for chunk in fixed_chunks]
+
         return fixed_chunks
 
     def chunk(self, content: str, url: str) -> list[str]:
@@ -211,6 +217,7 @@ class Chunker:
         """
         # Step 1: Initial chunking
         chunks = self.splitter.split_text(content)
+        logger.info(f"Chunk content length in chars: {len(content)}")
 
         # Step 2: Fix incomplete code blocks
         fixed_chunks = self._fix_incomplete_code_blocks(chunks)

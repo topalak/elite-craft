@@ -60,9 +60,7 @@ class EliteCraftClient:
             ValueError: If use_ngrok is True but ngrok_url is empty
         """
         if not host or not port:
-            raise ValueError(
-                "host and port must be provided whenuse_ngrok = False"
-            )
+            raise ValueError()
         self.base_url = f"http://{host}:{port}"
 
     def ask_question(self, query: str) -> QuestionResponse:

@@ -6,6 +6,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from rich.console import Console
 from rich.markdown import Markdown
 
+from config import settings
 from elite_craft.model_provider import ModelConfig
 from elite_craft.tools.handler import Handler
 
@@ -106,7 +107,7 @@ class Crafter:
         self.checkpointer = InMemorySaver()
         self.agent = create_agent(
             model=self.llm,
-            tools=[self.handler.get_retriever_tool()], #todo control it in debug mode, when you add parantheses it gets the tool object if not add it , method returns itself
+            tools=[self.handler.get_retriever_tool()],
             system_prompt=SYSTEM_INSTRUCTIONS,
             checkpointer=self.checkpointer,
             middleware=[TodoListMiddleware()],
@@ -128,7 +129,7 @@ class Crafter:
         """
         result = self.agent.invoke(
             input={"messages": [{"role": "user", "content": query}]},
-            config={"configurable": {"thread_id": "1"}},
+            config={"configurable": {"thread_id": settings.DEFAULT_THREAD_ID}},
         )
 
         # Extract final answer from agent response
