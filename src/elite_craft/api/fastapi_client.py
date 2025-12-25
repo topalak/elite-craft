@@ -24,6 +24,7 @@ Example:
 """
 import requests
 
+from config import settings
 from elite_craft.api.schemas import (
     QuestionRequest,
     QuestionResponse,
@@ -39,8 +40,6 @@ class EliteCraftClient:
     Args:
         host: Elite Craft API host (e.g., "localhost" or "127.0.0.1")
         port: Elite Craft API port (e.g., 8000)
-        use_ngrok: If True, uses ngrok_url instead of host:port
-        ngrok_url: Full ngrok tunnel URL (e.g., "https://xxxx.ngrok-free.app")
     """
     def __init__(
         self,
@@ -53,14 +52,12 @@ class EliteCraftClient:
         Args:
             host: Elite Craft API host (default: "localhost")
             port: Elite Craft API port (default: 8000)
-            use_ngrok: If True, uses ngrok_url instead of host:port
-            ngrok_url: Full ngrok tunnel URL including https://
 
         Raises:
             ValueError: If use_ngrok is True but ngrok_url is empty
         """
         if not host or not port:
-            raise ValueError()
+            raise ValueError("host and port are required")
         self.base_url = f"http://{host}:{port}"
 
     def ask_question(self, query: str) -> QuestionResponse:
@@ -77,7 +74,7 @@ class EliteCraftClient:
         response = requests.post(
             url=f"{self.base_url}/api/ask",
             json=request_data.model_dump(),
-            timeout=90,
+            timeout=settings.API_REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         return QuestionResponse(**response.json())
@@ -96,7 +93,7 @@ class EliteCraftClient:
         response = requests.post(
             url=f"{self.base_url}/api/update-db",
             json=request_data.model_dump(),
-            timeout=10,
+            timeout=settings.API_UPDATE_DB_TIMEOUT,
         )
         response.raise_for_status()
         return UpdateDBResponse(**response.json())

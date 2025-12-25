@@ -7,6 +7,7 @@ This is the backend HTTP server that:
 - Returns JSON responses
 - Runs on a port you decide
 """
+import json
 import logging
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -35,9 +36,11 @@ app = FastAPI(
 )
 
 # Add CORS middleware (allows Streamlit to call this API)
+# SECURITY: ALLOWED_ORIGINS should be restricted to your Streamlit domain in production
+# Set DEBUG=false and configure ALLOWED_ORIGINS in .env for production deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to your Streamlit domain
+    allow_origins=settings.ALLOWED_ORIGINS if not settings.DEBUG else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -103,11 +106,35 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
         )
 
     try:
-        # Call Crafter agent
-        result = crafter.ask(request.query)
+        # Call Crafter agent - invoke directly to get full result with chunks
+        agent_result = crafter.agent.invoke(
+            input={"messages": [{"role": "user", "content": request.query}]},
+            config={"configurable": {"thread_id": settings.DEFAULT_THREAD_ID}},
+        )
+
+        # Extract answer from final message
+        answer = agent_result["messages"][-1].content
+
+        # Extract retrieved chunks from tool messages
+        retrieved_chunks = []
+        for message in agent_result["messages"]:
+            # Check if this is a tool message (contains retriever results)
+            if hasattr(message, 'type') and message.type == 'tool':
+                # Tool messages contain the tool's return value
+                if isinstance(message.content, list):
+                    retrieved_chunks.extend(message.content)
+                elif isinstance(message.content, str):
+                    # Sometimes content is stringified, try to parse it
+                    try:
+                        parsed = json.loads(message.content)
+                        if isinstance(parsed, list):
+                            retrieved_chunks.extend(parsed)
+                    except (json.JSONDecodeError, TypeError):
+                        pass   #todo debugging
 
         return QuestionResponse(
-            answer=result,
+            answer=answer,
+            retrieved_chunks=retrieved_chunks
         )
 
     except TimeoutError as e:
@@ -131,18 +158,21 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
 
         if "supabase" in error_name.lower() or "postgrest" in error_name.lower():
             logger.error(f"Database error: {error_msg}")
-            # Surface actual error in development for debugging
-            raise HTTPException(
-                status_code=503,
-                detail=f"Database error: {error_msg}"
-            )
+            # In production, don't expose internal error details
+            if settings.DEBUG:
+                detail = f"Database error: {error_msg}"
+            else:
+                detail = "Database service is unable to handle that task. "
+            raise HTTPException(status_code=503, detail=detail)
 
-        # Unknown error - log with full context and surface the actual error
+        # Unknown error - log with full context
         logger.exception(f"Unexpected error in ask_question: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error: {error_msg}"
-        )
+        # In production, return generic error message
+        if settings.DEBUG:
+            detail = f"Error: {error_msg}"
+        else:
+            detail = "An internal error occurred. Please contact support if this persists."
+        raise HTTPException(status_code=500, detail=detail)
 
 
 @app.post("/api/update-db", response_model=UpdateDBResponse)

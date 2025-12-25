@@ -1,6 +1,6 @@
 --Create match_chunks function
 CREATE OR REPLACE FUNCTION match_chunks (
-    query_embedding vector(1536),
+    query_embedding vector(768),
     match_count int DEFAULT 8,
     similarity_threshold float DEFAULT 0.7,
     source_filter varchar DEFAULT NULL

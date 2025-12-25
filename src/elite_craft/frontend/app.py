@@ -127,6 +127,45 @@ if query := st.chat_input("How do I build an agent?"):
                 # Display answer
                 st.markdown(response.answer)
 
+                # Display retrieved chunks for debugging
+                if response.retrieved_chunks:
+                    with st.expander(
+                        f"📚 Retrieved Chunks ({len(response.retrieved_chunks)})",
+                        expanded=False
+                    ):
+                        for i, chunk in enumerate(response.retrieved_chunks, 1):
+                            if isinstance(chunk, dict):
+                                # Display chunk header with similarity and source
+                                col1, col2 = st.columns([3, 1])
+                                with col1:
+                                    source = chunk.get('source', 'unknown')
+                                    chunk_num = chunk.get('chunk_number', '?')
+                                    st.markdown(f"**Chunk {i}** - `{source}` (chunk #{chunk_num})")
+                                with col2:
+                                    similarity = chunk.get('similarity', 0)
+                                    st.metric("Similarity", f"{similarity:.3f}")
+
+                                # Display URL
+                                if 'url' in chunk:
+                                    st.caption(f"🔗 [{chunk['url']}]({chunk['url']})")
+
+                                # Display content
+                                content = chunk.get('content', '')
+                                if content:
+                                    # Render as markdown to preserve code blocks
+                                    st.markdown(content)
+
+                                # Display crawled time if available
+                                if 'crawled_time' in chunk:
+                                    st.caption(f"⏰ Crawled: {chunk['crawled_time']}")
+
+                            else:
+                                # Fallback for non-dict chunks
+                                st.markdown(f"**Chunk {i}**")
+                                st.markdown(str(chunk))
+
+                            st.markdown("---")
+
                 # Add to history
                 st.session_state.messages.append({
                     "role": "assistant",

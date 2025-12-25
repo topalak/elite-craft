@@ -7,7 +7,7 @@ from elite_craft.tools.retriever import Retriever
 class RetrieverSchema(BaseModel):
     """Schema for retriever tool input validation."""
 
-    query: str = Field(description='Search query describing the information needed from documentation')
+    query: str = Field(description='Generate the most relevant search terms using keywords.')
 
 class Handler:
     """

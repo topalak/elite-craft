@@ -60,7 +60,6 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    #EMBEDDING_MODEL: str = "mxbai-embed-large:latest"
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     LLM_NAME: str = "ministral-3:8b-cloud"
 
@@ -69,6 +68,28 @@ class Settings(BaseSettings):
     # These variables must be set
     API_HOST: str = "localhost"
     API_PORT: int = 8000
+
+    # API timeout configuration (in seconds)
+    API_REQUEST_TIMEOUT: int = Field(
+        default=90,
+        description="Timeout for API requests to agent endpoints (ask_question)"
+    )
+    API_UPDATE_DB_TIMEOUT: int = Field(
+        default=100,
+        description="Timeout for database update endpoint requests"
+    )
+
+    # Security configuration
+    DEBUG: bool = Field(
+        default=False,
+        description="Enable debug mode - exposes detailed error messages (NEVER use in production!)"
+    )
+
+    # CORS configuration
+    ALLOWED_ORIGINS: list[str] = Field(
+        default=["http://localhost:8501", "http://localhost:8502"],
+        description="Allowed CORS origins. Use ['*'] only in development!"
+    )
 
     USE_OLLAMA_LOCAL: bool = False
 
@@ -92,7 +113,7 @@ class Settings(BaseSettings):
     # WARNING: Changing CHUNK_SIZE requires re-ingesting ALL documents
     # This value affects knowledge base quality. Test retrieval before production.
     CHUNK_SIZE: int = Field(
-        default=2000,
+        default=1000,
         description="Default chunk size in characters. "
 
     )

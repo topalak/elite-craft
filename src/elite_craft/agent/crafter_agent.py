@@ -54,7 +54,7 @@ Examples requiring parallel calls:
 }
 
 SINGLE TOOL CALL EXAMPLES:
-✅ User: "I want to build an agent" → CALL retriever_tool(query="building agents with langchain langgraph")
+✅ User: "I want to build an agent" → CALL retriever_tool(query="building agents with langchain")
 ✅ User: "Let's add human in the loop" → CALL retriever_tool(query="human in the loop agent patterns")
 ✅ User: "How do I handle errors in my agent?" → CALL retriever_tool(query="agent error handling")
 ✅ User: "What's the best way to manage state?" → CALL retriever_tool(query="agent state management")
@@ -63,6 +63,14 @@ EXCEPTIONS - Don't call retriever_tool:
 ❌ Code review of user's existing code (no new knowledge needed)
 ❌ General Python questions unrelated to agent frameworks
 ❌ Meta questions about this conversation
+
+CHUNK SELECTION AND ANSWER QUALITY:
+- First, UNDERSTAND what the user is actually asking for - their goal, context, and expectations
+- You DON'T need to use every chunk retrieved - be SELECTIVE and use only chunks DIRECTLY relevant to the user's query
+- Focus on the MOST pertinent information that answers the user's specific question
+- If you retrieve 10 chunks but only 3 are relevant, USE ONLY THOSE 3
+- Your answer MUST meet the user's expectations - tailor your response to their actual needs
+- Prioritize quality over quantity - a focused answer using 2-3 relevant chunks is better than a scattered answer trying to incorporate all retrieved chunks
 
 CODE EXAMPLES:
 - Present examples EXACTLY as they appear in chunks
@@ -76,7 +84,7 @@ class Crafter:
     RAG-powered agent for answering questions about agent development.
 
     Retrieves relevant documentation chunks from knowledge base and uses
-    LLM to generate contextual answers about LangChain, LangGraph, and
+    LLM to generate contextual answers about LangChain and
     related frameworks.
     """
     

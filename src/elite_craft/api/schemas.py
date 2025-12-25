@@ -29,6 +29,10 @@ class QuestionResponse(BaseModel):
     Returned by: POST /api/ask
     """
     answer: str = Field(description="LLM-generated answer based on retrieved docs")
+    retrieved_chunks: list[dict] = Field(
+        default=[],
+        description="Retrieved documentation chunks used to generate the answer"
+    )
 
 
 class UpdateDBRequest(BaseModel):

@@ -31,16 +31,13 @@ class Chunker:
             chunk_overlap=chunk_overlap,
             keep_separator=True,
             separators=[
-                "\n### ",
-                "\n## ",
                 "\n# ",
-                "\nCopy\n```",
+                "\n## ",
+                "\n### ",
                 "Copy\n```",
-                "\n\n",
                 "\n",
-                ". ",
-                " ",
-                "",
+                "\n\n",
+                "\n```",
             ]
         )
 
@@ -196,10 +193,93 @@ class Chunker:
 
                 i += 1
 
-        length_of_chunks = [len(chunk) for chunk in chunks]
-        length_of_fixed_chunks = [len(chunk) for chunk in fixed_chunks]
-
         return fixed_chunks
+
+    @staticmethod
+    def _add_tiny_chunks_into_bigger_one(chunks: list[str], min_size: int = settings.MINIMUM_CHUNK_SIZE) -> list[str]:
+        """
+        Merge chunks smaller than min_size with their smaller neighbor.
+
+        Strategy:
+        - First chunk (tiny): merge with next
+        - Last chunk (tiny): merge with previous
+        - Middle chunk (tiny): merge with whichever neighbor is smaller
+
+        Args:
+            chunks: List of text chunks to process
+            min_size: Minimum chunk size threshold
+
+        Returns:
+            List of chunks with tiny chunks merged into their smaller neighbors
+
+        Raises:
+            ValueError: If chunks list is empty
+        """
+        if not chunks:
+            raise ValueError("Cannot process empty chunks list")
+
+        if len(chunks) == 1:
+            return chunks  # Single chunk, return as-is
+
+        new_chunks = []
+        skip_next = False
+
+        for i, chunk in enumerate(chunks):
+            # Skip if previous iteration merged this chunk
+            if skip_next:
+                skip_next = False
+                continue
+
+            # Chunk is large enough, keep as-is
+            if len(chunk) >= min_size:
+                new_chunks.append(chunk)
+                continue
+
+            # Tiny chunk - merge with smaller neighbor
+            is_first = (i == 0)
+            is_last = (i == len(chunks) - 1)
+
+            if is_last:
+                # Last chunk is tiny - merge with previous
+                if new_chunks:
+                    new_chunks[-1] = new_chunks[-1] + "\n" + chunk
+                    logger.debug(f"Merged tiny last chunk ({len(chunk)} chars) with previous")
+                else:
+                    # Edge case: only chunk in list, keep it
+                    new_chunks.append(chunk)
+
+            elif is_first:
+                # First chunk is tiny - merge with next
+                next_chunk = chunks[i + 1]
+                extended_chunk = chunk + "\n" + next_chunk
+                new_chunks.append(extended_chunk)
+                skip_next = True
+                logger.debug(f"Merged tiny first chunk ({len(chunk)} chars) with next")
+
+            else:
+                # Middle chunk is tiny - merge with SMALLER neighbor
+                next_chunk = chunks[i + 1]
+                prev_chunk = new_chunks[-1] if new_chunks else ""
+
+                if len(next_chunk) < len(prev_chunk):
+                    # Next is smaller, merge forward
+                    extended_chunk = chunk + "\n" + next_chunk
+                    new_chunks.append(extended_chunk)
+                    skip_next = True
+                    logger.debug(
+                        f"Merged tiny chunk ({len(chunk)} chars) with smaller next chunk ({len(next_chunk)} chars)"
+                    )
+                else:
+                    # Previous is smaller or equal, merge backward
+                    if new_chunks:
+                        new_chunks[-1] = new_chunks[-1] + "\n" + chunk
+                        logger.debug(
+                            f"Merged tiny chunk ({len(chunk)} chars) with smaller previous chunk ({len(prev_chunk)} chars)"
+                        )
+                    else:
+                        new_chunks.append(chunk)
+
+        return new_chunks
 
     def chunk(self, content: str, url: str) -> list[str]:
         """
@@ -222,8 +302,6 @@ class Chunker:
         # Step 2: Fix incomplete code blocks
         fixed_chunks = self._fix_incomplete_code_blocks(chunks)
 
-        logger.info(
-            f"[CHUNK COMPLETE] Generated {len(fixed_chunks)} chunks for {url} "
-            f"(original: {len(chunks)})"
-        )
-        return fixed_chunks
+        extended_chunks = self._add_tiny_chunks_into_bigger_one(fixed_chunks)
+
+        return extended_chunks

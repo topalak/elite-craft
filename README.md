@@ -117,7 +117,7 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/elite-craft.git
+git clone https://github.com/topalak/elite-craft.git
 cd elite-craft
 ```
 

@@ -74,25 +74,6 @@ class UpdateDBPipeline:
             )
             logger.info(f"[PIPELINE] Generated {len(chunks)} chunks for {url}")
 
-            # Log chunk size statistics
-            chunk_sizes = [len(c) for c in chunks]
-            max_chunk = max(chunk_sizes)
-            avg_chunk = sum(chunk_sizes) / len(chunk_sizes)
-
-            # Print to stdout to ensure visibility regardless of logging level
-            print(
-                f"[CHUNK STATS] {url}\n"
-                f"  Total chunks: {len(chunks)}\n"
-                f"  Max size: {max_chunk} chars\n"
-                f"  Avg size: {avg_chunk:.0f} chars\n"
-                f"  Min size: {min(chunk_sizes)} chars"
-            )
-
-            logger.info(
-                f"[PIPELINE] Chunk sizes for {url}: "
-                f"max={max_chunk}, avg={avg_chunk:.0f}, count={len(chunks)}"
-            )
-
             # Step 4: Generate embeddings
             # GPU-bound - run in thread to not block event loop
             logger.debug(f"[PIPELINE] Step 4/5: Generating embeddings for {url}")
@@ -200,33 +181,37 @@ async def main():
     )
 
     urls = [
+        #"https://docs.langchain.com/oss/python/langchain/install",
+        #"https://docs.langchain.com/oss/python/langchain/quickstart",
+        #"https://docs.langchain.com/oss/python/langchain/philosophy",
         #"https://docs.langchain.com/oss/python/langchain/agents",
+        "https://docs.langchain.com/oss/python/langchain/models",
         #"https://docs.langchain.com/oss/python/langchain/messages",
-        #"https://docs.langchain.com/oss/python/langchain/models",
         #"https://docs.langchain.com/oss/python/langchain/tools",
-        #"https://docs.langchain.com/oss/python/langchain/structured-output",
-        #"https://docs.langchain.com/oss/python/langchain/middleware/built-in",
-        #"https://docs.langchain.com/oss/python/langchain/overview",
+        #"https://docs.langchain.com/oss/python/langchain/short-term-memory",
         #"https://docs.langchain.com/oss/python/langchain/streaming",
+        #"https://docs.langchain.com/oss/python/langchain/structured-output",
+        #"https://docs.langchain.com/oss/python/langchain/middleware/overview",
+        #"https://docs.langchain.com/oss/python/langchain/middleware/built-in",
+        "https://docs.langchain.com/oss/python/langchain/middleware/custom",
         #"https://docs.langchain.com/oss/python/langchain/guardrails",
         #"https://docs.langchain.com/oss/python/langchain/runtime",
         #"https://docs.langchain.com/oss/python/langchain/context-engineering",
+        #"https://docs.langchain.com/oss/python/langchain/mcp",
         #"https://docs.langchain.com/oss/python/langchain/human-in-the-loop",
-
-        #"https://reference.langchain.com/python/langchain/agents/",
-        #"https://reference.langchain.com/python/langchain/middleware/",
-        #"https://reference.langchain.com/python/langchain/models/",
-        #"https://reference.langchain.com/python/langchain/messages/",
-        "https://reference.langchain.com/python/langchain/tools/",
-
-
-        #"https://docs.langchain.com/oss/python/langgraph/overview",
-        #"https://docs.langchain.com/oss/python/langgraph/quickstart",
-        #"https://docs.langchain.com/oss/python/langgraph/install",
-        #"https://docs.langchain.com/oss/python/langgraph/local-server",
-        #"https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph",
-        #"https://docs.langchain.com/oss/python/langgraph/workflows-agents",
-        #"https://docs.langchain.com/oss/python/langgraph/application-structure"
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent",
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent/subagents",
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs",
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent/skills",
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent/router",
+        #"https://docs.langchain.com/oss/python/langchain/multi-agent/custom-workflow",
+        #"https://docs.langchain.com/oss/python/langchain/retrieval",
+        #"https://docs.langchain.com/oss/python/langchain/long-term-memory",
+        #"https://docs.langchain.com/oss/python/langchain/studio",
+        #"https://docs.langchain.com/oss/python/langchain/test",
+        #"https://docs.langchain.com/oss/python/langchain/ui",
+        #"https://docs.langchain.com/oss/python/langchain/deploy",
+        #"https://docs.langchain.com/oss/python/langchain/observability"
     ]
 
     # Process all URLs concurrently
