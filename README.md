@@ -69,29 +69,32 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 
 **Orchestration & Agent Framework:**
 - **LangChain**: Core framework for LLM application development
+- **DeepAgents**: Advanced agent patterns built on LangGraph
 
 **Data Processing:**
 - **Crawl4AI**: Asynchronous web crawling with markdown conversion
-- **Docling**: Intelligent document chunking with hybrid strategies
-- **Pydantic**: Data validation and settings management
+- **LangChain Text Splitters**: RecursiveCharacterTextSplitter with intelligent code block handling
+- **Pydantic**: Data validation and settings management with SecretStr for sensitive data
 
 **Vector Database & Search:**
 - **Supabase**: PostgreSQL with pgvector extension for vector storage
 - **pgvector**: Cosine similarity search for semantic retrieval
 
 **Embeddings & LLMs:**
-- **Ollama**: Local embedding models (nomic-embed-text:v1.5)
-- **HuggingFace**: Alternative embedding providers
-- Configurable LLM providers (Ollama, Groq)
+- **Ollama**: Embedding models (nomic-embed-text:v1.5 - 768 dimensions)
+- Configurable LLM providers:
+  - Ollama Cloud (default: ministral-3:8b-cloud)
+  - Ollama Local (when USE_OLLAMA_LOCAL=true)
+  - Groq Cloud (when use_groq=true)
 
 ### Core Components
 
 **Knowledge Base Pipeline:**
 1. **UpdateDBPipeline** (`services/update_db_pipeline.py`): Orchestrates the complete document ingestion workflow
-2. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown
-3. **Chunker** (`services/chunking.py`): Splits documents into semantic chunks
-4. **Embedder** (`services/embedding.py`): Generates vector embeddings for chunks
-5. **DatabaseUploader** (`services/database_uploading.py`): Manages Supabase operations
+2. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown with source detection
+3. **Chunker** (`services/chunking.py`): RecursiveCharacterTextSplitter with intelligent code block merging and minimum chunk size enforcement
+4. **Embedder** (`services/embedding.py`): Batched embedding generation with oversized chunk detection
+5. **DatabaseUploader** (`services/database_uploading.py`): Supabase operations with batch inserts and connection pool management
 
 **Agent System:**
 6. **Retriever** (`tools/retriever.py`): Performs semantic search with source filtering
@@ -134,8 +137,9 @@ cp .env.example .env
 
 4. Set up the database:
 ```sql
--- Run the schema in Supabase SQL Editor
--- File: src/elite_craft/database/db_setup.sql
+-- Run these SQL files in Supabase SQL Editor in order:
+-- 1. src/elite_craft/database/db_table_setup.sql (creates tables)
+-- 2. src/elite_craft/database/db_cosine_similarity_function.sql (creates search function)
 ```
 
 ---
@@ -158,10 +162,14 @@ OLLAMA_API_KEY=your-ollama-key
 ```
 
 The configuration is managed through Pydantic Settings in `src/config.py` with the following defaults:
-- Embedding model: `nomic-embed-text:v1.5`
-- LLM: `gpt-oss:20b-cloud`
+- Embedding model: `nomic-embed-text:v1.5` (768-dimensional vectors)
+- LLM: `ministral-3:8b-cloud` (Ollama Cloud)
+- Chunk size: 1000 characters with 300 character overlap
+- Minimum chunk size: 500 characters
 - Batch size for database uploads: 100
+- Embedding batch size: 20 chunks per API call
 - Timezone: UTC+3
+- Security: All API keys and secrets use Pydantic SecretStr for enhanced protection
 
 ---
 
@@ -183,7 +191,7 @@ PYTHONPATH=./src uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --por
 - Interactive API Documentation: `http://localhost:8000/docs`
 - Alternative Documentation: `http://localhost:8000/redoc`
 
-**Note:** On first startup, Ollama will download the model (`qwen2.5-coder:7b`, ~4.68GB). The server won't be fully functional until this completes.
+**Note:** On first startup, Ollama may need to download the embedding model (`nomic-embed-text:v1.5`, ~274MB) and LLM model (`ministral-3:8b-cloud`). The server won't be fully functional until these downloads complete.
 
 ### 2. Streamlit Frontend
 
@@ -221,7 +229,11 @@ This happens when `PYTHONPATH` is not set correctly. Make sure you're running th
 
 **Issue: Ollama model downloading on first startup**
 
-The FastAPI server will download the `qwen2.5-coder:7b` model (~4.68GB) on first startup. This is normal and only happens once. Wait for the download to complete before making API requests.
+The FastAPI server will download the required models on first startup:
+- Embedding model: `nomic-embed-text:v1.5` (~274MB)
+- LLM model: `ministral-3:8b-cloud` (size varies by provider)
+
+This is normal and only happens once. Wait for the downloads to complete before making API requests.
 
 **Long-term fix for PYTHONPATH:**
 
@@ -284,11 +296,12 @@ URL → Crawl → Upload Metadata → Chunk → Embed → Upload Chunks → Comp
 
 ### Chunks Table
 - `id`: Serial primary key
-- `url`: Foreign key to metadata
-- `chunk_number`: Chunk sequence number
+- `document_id`: Foreign key to documents table
+- `chunk_id_in_document`: Chunk sequence number within document
 - `content`: Chunk text
 - `embedding`: Vector(768) for similarity search
 - `created_at`: Timestamp
+- Unique constraint on (document_id, chunk_id_in_document)
 
 ---
 

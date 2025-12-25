@@ -49,11 +49,11 @@ app.add_middleware(
 # Initialize Crafter agent ONCE when server starts (not per request!)
 crafter = Crafter(
     llm_model=settings.LLM_NAME,
-    llm_api_key=settings.OLLAMA_API_KEY,
+    llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
     use_ollama_local=settings.USE_OLLAMA_LOCAL,
-    ollama_provider_url=settings.OLLAMA_HOST_COLAB,
-    supabase_url=settings.SUPABASE_URL,
-    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+    ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
+    supabase_url=settings.SUPABASE_URL.get_secret_value(),
+    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
     embedding_model=settings.EMBEDDING_MODEL,
 
 )
@@ -63,8 +63,8 @@ logger.info("✅ Crafter agent initialized")
 # Initialize UpdateDBPipeline
 pipeline = UpdateDBPipeline(
     embedding_model=settings.EMBEDDING_MODEL,
-    supabase_url=settings.SUPABASE_URL,
-    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+    supabase_url=settings.SUPABASE_URL.get_secret_value(),
+    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
     chunk_size=settings.CHUNK_SIZE,
     chunk_overlap=settings.CHUNK_OVERLAP
 )

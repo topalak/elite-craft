@@ -29,17 +29,17 @@ if __name__ == "__main__":
 
     os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
     os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
-    os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
+    os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY.get_secret_value()
     os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
 
     crafter = Crafter(
         llm_model=settings.LLM_NAME,
         use_ollama_local=settings.USE_OLLAMA_LOCAL,
-        ollama_provider_url=settings.OLLAMA_HOST_LOCAL,
-        llm_api_key=settings.OLLAMA_API_KEY,
+        ollama_provider_url=settings.OLLAMA_HOST_LOCAL.get_secret_value(),
+        llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
         embedding_model=settings.EMBEDDING_MODEL,
-        supabase_url=settings.SUPABASE_URL,
-        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
+        supabase_url=settings.SUPABASE_URL.get_secret_value(),
+        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value()
     )
 
     while True:

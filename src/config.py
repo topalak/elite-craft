@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,14 +21,14 @@ class Settings(BaseSettings):
     and validation. Loads from .env file in parent directory.
 
     Attributes:
-        OLLAMA_API_KEY: API key for Ollama cloud service
-        GROQ_API_KEY: API key for Groq cloud service
-        SUPABASE_URL: Supabase project URL
-        SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key
-        SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key
+        OLLAMA_API_KEY: API key for Ollama cloud service (SecretStr)
+        GROQ_API_KEY: API key for Groq cloud service (SecretStr)
+        SUPABASE_URL: Supabase project URL (SecretStr)
+        SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key (SecretStr)
+        SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key (SecretStr)
         LANGSMITH_TRACING: Enable/disable LangSmith tracing
         LANGSMITH_ENDPOINT: LangSmith API endpoint URL
-        LANGSMITH_API_KEY: LangSmith API key for tracing
+        LANGSMITH_API_KEY: LangSmith API key for tracing (SecretStr)
         LANGSMITH_PROJECT: LangSmith project name
         EMBEDDING_MODEL: Name of embedding model (default: embeddinggemma)
         LLM_NAME: Name of LLM model (default: gpt-oss:20b-cloud)
@@ -41,17 +41,17 @@ class Settings(BaseSettings):
         API_HOST: API server host (default: localhost)
         API_PORT: API server port (default: 8000)
     """
-    OLLAMA_API_KEY: str = ""
-    OLLAMA_HOST_LOCAL: str = ""
-    OLLAMA_HOST_COLAB: str = ""
-    OLLAMA_COLAB_API_KEY: str = ""
-    GROQ_API_KEY: str = ""
-    SUPABASE_URL: str = ""
-    SUPABASE_SERVICE_ROLE_SECRET_KEY: str = ""
-    SUPABASE_ANON_PUBLIC_KEY: str = ""
+    OLLAMA_API_KEY: SecretStr = ""
+    OLLAMA_HOST_LOCAL: SecretStr = ""
+    OLLAMA_HOST_COLAB: SecretStr = ""
+    OLLAMA_COLAB_API_KEY: SecretStr = ""
+    GROQ_API_KEY: SecretStr = ""
+    SUPABASE_URL: SecretStr = ""
+    SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
+    SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
     LANGSMITH_TRACING: str = "true"
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
-    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_API_KEY: SecretStr = ""
     LANGSMITH_PROJECT: str = "elite-craft"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')

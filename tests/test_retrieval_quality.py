@@ -60,8 +60,8 @@ def analyze_retrieval_quality():
 
     # Initialize retriever
     retriever = Retriever(
-        supabase_url=settings.SUPABASE_URL,
-        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
+        supabase_url=settings.SUPABASE_URL.get_secret_value(),
+        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
         embedding_model_name=settings.EMBEDDING_MODEL
     )
 

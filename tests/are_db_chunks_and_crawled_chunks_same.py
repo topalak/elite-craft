@@ -10,7 +10,7 @@ from src.config import settings
 class ChunkerTest:
 
     def __init__ (self):
-        self.db_client: Client = create_client(supabase_url=settings.SUPABASE_URL, supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY)
+        self.db_client: Client = create_client(supabase_url=settings.SUPABASE_URL.get_secret_value(), supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value())
 
     def fetch_chunks_from_document_id(self, document_id:int):
 
