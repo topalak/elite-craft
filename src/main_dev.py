@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
 
-    os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
-    os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
+    os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING','true')
+    os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT','https://api.smith.langchain.com')
     os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY.get_secret_value()
-    os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
+    os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT','elite-craft')
 
     crafter = Crafter(
         llm_model=settings.LLM_NAME,
@@ -39,7 +39,8 @@ if __name__ == "__main__":
         llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
         embedding_model=settings.EMBEDDING_MODEL,
         supabase_url=settings.SUPABASE_URL.get_secret_value(),
-        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value()
+        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
+        tavily_api_key=settings.TAVILY_API_KEY.get_secret_value(),
     )
 
     while True:
@@ -47,6 +48,7 @@ if __name__ == "__main__":
         if query.lower() == 'exit':
             print("Catch You Later")
             break
-        # Get retrieved chunks
+
+        # Invoke the agent
         crafter.ask(query=query, print_to_cli=True)
 

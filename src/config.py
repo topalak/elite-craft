@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: SecretStr = ""
     SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
     SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
+    TAVILY_API_KEY: SecretStr = ""
     LANGSMITH_TRACING: str = "true"
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: SecretStr = ""
@@ -61,7 +62,10 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "ministral-3:8b-cloud"
+    LLM_NAME: str = "gpt-oss:20b-cloud"
+    #LLM_NAME: str = "ministral-3:14b-cloud"
+    #LLM_NAME: str = "devstral-small-2:24b-cloud"
+    #LLM_API_KEY: str = "nemotron-3-nano:30b-cloud"
 
 
     # API server configuration
