@@ -41,16 +41,6 @@ class Embedder:
         embedding_model_config = ModelConfig(model=model)
         self.embedding_model = embedding_model_config.get_embedding()
 
-        # Get context limit for this model
-        self.max_tokens = EMBEDDING_MODEL_CONTEXT_LIMITS.get(model, 8192)
-        self.max_chars = self.max_tokens * 4  # Approximate: 1 token ≈ 4 chars
-
-        logger.info(
-            f"[EMBEDDER INIT] Model: {model}, "
-            f"Max context: {self.max_tokens} tokens (~{self.max_chars} chars), "
-            f"Batch size: {batch_size}"
-        )
-
     def embed(self, chunks: list[str], url: str) -> list[list[float]]:
         """
         Generate embeddings for a list of text chunks with batching.
@@ -68,16 +58,6 @@ class Embedder:
         Raises:
             ValueError: If embedding count doesn't match chunk count
         """
-        # Check for oversized individual chunks
-        oversized = [
-            (idx, len(c)) for idx, c in enumerate(chunks)
-            if len(c) > self.max_chars
-        ]
-        if oversized:
-            logger.warning(
-                f"[EMBED WARNING] {url} has {len(oversized)} chunks "
-                f"exceeding {self.max_chars} chars: {oversized[:3]}"
-            )
 
         # Process chunks in batches
         all_embeddings = []

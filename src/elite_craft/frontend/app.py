@@ -17,7 +17,7 @@ from elite_craft.api import EliteCraftClient
 
 os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
 os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
-os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
+os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY.get_secret_value()
 os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
 
 # Configure logging
