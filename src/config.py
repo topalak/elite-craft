@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "gpt-oss:20b-cloud"
+    LLM_NAME: str = "gpt-oss:120b-cloud"
     #LLM_NAME: str = "ministral-3:14b-cloud"
     #LLM_NAME: str = "devstral-small-2:24b-cloud"
     #LLM_API_KEY: str = "nemotron-3-nano:30b-cloud"

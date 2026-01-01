@@ -104,7 +104,49 @@ if "messages" not in st.session_state:
 # Display conversation history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
+        # Show chunk count if this message has chunks
+        if message.get("chunk_count"):
+            st.info(f"📊 Retrieved {message['chunk_count']} chunk{'s' if message['chunk_count'] != 1 else ''} for this query")
+
         st.markdown(message["content"])
+
+        # Display chunks if available
+        if message.get("chunks"):
+            with st.expander(
+                f"📚 Retrieved Chunks ({len(message['chunks'])})",
+                expanded=False
+            ):
+                for i, chunk in enumerate(message['chunks'], 1):
+                    if isinstance(chunk, dict):
+                        # Display chunk header with similarity and source
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            source = chunk.get('source', 'unknown')
+                            chunk_num = chunk.get('chunk_number', '?')
+                            st.markdown(f"**Chunk {i}** - `{source}` (chunk #{chunk_num})")
+                        with col2:
+                            similarity = chunk.get('similarity', 0)
+                            st.metric("Similarity", f"{similarity:.3f}")
+
+                        # Display URL
+                        if 'url' in chunk:
+                            st.caption(f"🔗 [{chunk['url']}]({chunk['url']})")
+
+                        # Display content
+                        content = chunk.get('content', '')
+                        if content:
+                            st.markdown(content)
+
+                        # Display crawled time if available
+                        if 'crawled_time' in chunk:
+                            st.caption(f"⏰ Crawled: {chunk['crawled_time']}")
+
+                    else:
+                        # Fallback for non-dict chunks
+                        st.markdown(f"**Chunk {i}**")
+                        st.markdown(str(chunk))
+
+                    st.markdown("---")
 
 # Chat input
 if query := st.chat_input("How do I build an agent?"):
@@ -123,6 +165,11 @@ if query := st.chat_input("How do I build an agent?"):
         with st.spinner("Thinking..."):
             try:
                 response = client.ask_question(query)
+
+                # Display chunk count indicator
+                chunk_count = len(response.retrieved_chunks) if response.retrieved_chunks else 0
+                if chunk_count > 0:
+                    st.info(f"📊 Retrieved {chunk_count} chunk{'s' if chunk_count != 1 else ''} for this query")
 
                 # Display answer
                 st.markdown(response.answer)
@@ -166,10 +213,12 @@ if query := st.chat_input("How do I build an agent?"):
 
                             st.markdown("---")
 
-                # Add to history
+                # Add to history with chunks
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": response.answer
+                    "content": response.answer,
+                    "chunks": response.retrieved_chunks,
+                    "chunk_count": chunk_count
                 })
 
             except Exception as e:

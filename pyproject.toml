@@ -16,6 +16,7 @@ dependencies = [
     "supabase>=2.22.1",
     "uvicorn==0.38.0",
     "crawl4ai>=0.7.6",
+    "docling==2.60.0",
     "pytest>=9.0.1",
     "pytest-cov>=6.0.0",
     "pytest-asyncio>=0.25.2",

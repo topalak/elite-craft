@@ -33,7 +33,7 @@ class ModelConfig:
         temperature: float = 0,
         use_ollama_local: bool = False,
         api_key: str = None,
-        use_groq: bool = None,
+        use_groq: bool = False,
     ):
 
         self.model = model

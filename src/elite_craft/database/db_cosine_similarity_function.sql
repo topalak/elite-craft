@@ -1,8 +1,7 @@
 --Create match_chunks function
 CREATE OR REPLACE FUNCTION match_chunks (
     query_embedding vector(768),
-    match_count int DEFAULT 8,
-    similarity_threshold float DEFAULT 0.7,
+    match_count int DEFAULT 20,    -- todo re-rank
     source_filter varchar DEFAULT NULL
 ) RETURNS TABLE (
     chunk_id integer,
@@ -17,31 +16,19 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    WITH ranked_chunks AS (
-        SELECT
-            c.id AS chunk_id,
-            d.url,
-            c.chunk_id_in_document,
-            c.content,
-            d.source,
-            d.crawled_time,
-            1 - (c.embedding <=> query_embedding) AS similarity
-        FROM public.chunks c
-        JOIN public.documents d ON c.document_id = d.id
-        WHERE (source_filter IS NULL OR d.source = source_filter)
-    )
     SELECT
-        chunk_id,
-        url,
-        chunk_id_in_document,
-        content,
-        source,
-        crawled_time,
-        similarity
-    FROM ranked_chunks
-    WHERE similarity >= similarity_threshold
-    ORDER BY similarity DESC
-    LIMIT match_count;   --todo check whether the function runs correctly or not
+        c.id AS chunk_id,
+        d.url,                                -- get url from documents, not chunks
+        c.chunk_id_in_document,
+        c.content,
+        d.source,
+        d.crawled_time,
+        1 - (c.embedding <=> query_embedding) AS similarity
+    FROM public.chunks c
+    JOIN public.documents d ON c.document_id = d.id  -- correct JOIN condition
+    WHERE (source_filter IS NULL OR d.source = source_filter)
+    ORDER BY c.embedding <=> query_embedding
+    LIMIT match_count;
 END;
 $$;
 

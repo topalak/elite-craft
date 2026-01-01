@@ -39,7 +39,7 @@ class WebSearch:
         """
         response = self.client.search(
             query=query,
-            include_images=True,
+            include_images=False,
             include_image_descriptions=True
         )
 

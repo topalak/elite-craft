@@ -8,12 +8,13 @@ from elite_craft.tools.web_search import WebSearch
 class WebSearchSchema(BaseModel):
     """Schema for web search tool input validation."""
 
-    query: str = Field(description='Generate the most relevant search terms using keywords.')
+    query: str = Field(description="Generate the most relevant search terms "
+                                   "using keywords. ")
 
 class RetrieverSchema(BaseModel):
     """Schema for retriever tool input validation."""
 
-    query: str = Field(description='Generate the most relevant search terms using keywords.')
+    query: str = Field(description="Use keywords related to query")
 
 class Handler:
     """
@@ -58,16 +59,19 @@ class Handler:
         @tool("retriever_tool", args_schema=RetrieverSchema)
         def retriever_tool(query: str) -> list[dict]:
             """
-            Retrieve relevant documentation chunks using semantic search.
+            Retrieve relevant documentation chunks from the agent development knowledge base using semantic search.
 
-            The tool searches a vector database
-            of documentation and returns the most relevant chunks.
+            **WHAT THIS TOOL DOES**:
+            Performs vector similarity search against a curated database of agent development documentation
+            (LangChain). Uses embedding-based semantic search to find
+            the most contextually relevant chunks of documentation that match your query.
 
-            Args:
-                query: Search query describing what information you need
-
-            Returns:
-                List of relevant documentation chunks with metadata
+            **WHEN TO USE THIS TOOL**:
+            - ANY agent-related queries
+            - Building, creating, or implementing agents
+            - Questions about LangChain, LangGraph, Deep Agents frameworks
+            - Agent patterns: tools, memory, state management, streaming, Human-in-the-Loop
+            - Architecture decisions for agent systems
             """
             response = self.retriever.retrieve_relevant_chunks(
                 query=query,
@@ -91,9 +95,6 @@ class Handler:
 
             The tool performs real-time web search and returns relevant
             results with snippets, URLs, and metadata.
-
-            Args:
-                query: Search query describing what information to find
 
             Returns:
                 Dictionary containing web search results with URLs, snippets, and metadata
