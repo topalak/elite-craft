@@ -1,4 +1,5 @@
 import logging
+import re
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -31,13 +32,12 @@ class Chunker:
             chunk_overlap=chunk_overlap,
             keep_separator=True,
             separators=[
-                "\n# ",
-                "\n## ",
-                "\n### ",
-                "Copy\n```",
-                "\n",
-                "\n\n",
-                "\n```",
+                "\n#",
+                "\n##",
+                "\n###",
+                "\n####",
+                "\n\n\n"
+
             ]
         )
 
@@ -281,6 +281,115 @@ class Chunker:
 
         return new_chunks
 
+    @staticmethod
+    def _find_last_heading_in_text(text: str) -> int:
+        """
+        Find the position of the last Markdown heading in given text.
+
+        Args:
+            text: Text to search for headings
+
+        Returns:
+            Starting position of the last heading, or -1 if no heading found
+        """
+        # Pattern to match Markdown headings (h1-h6)
+        # ^ = start of line, #{1,6} = 1 to 6 hash symbols, \s+ = one or more spaces, .+ = any characters
+        heading_pattern = r'^#{1,6}\s+.+$'
+
+        # Find all headings in the text
+        last_heading_match = None
+        for match in re.finditer(heading_pattern, text, re.MULTILINE):
+            last_heading_match = match  # Keep updating to get the last one
+
+        if last_heading_match:
+            return last_heading_match.start()  # Return starting position of last heading
+
+        return -1  # No heading found
+
+    @staticmethod
+    def _get_context_from_previous_chunk(
+        previous_chunk_text: str,
+        max_context_chars: int = 3000
+    ) -> str:
+        """
+        Extract context from previous chunk - from last heading onwards.
+
+        Args:
+            previous_chunk_text: Text of the previous chunk
+            max_context_chars: Maximum characters to extract (default: 3000)
+
+        Returns:
+            Context text to prepend to current chunk
+        """
+        # Find position of last heading in previous chunk
+        last_heading_pos = Chunker._find_last_heading_in_text(previous_chunk_text)
+
+        if last_heading_pos != -1:
+            # Extract from the last heading to the end of previous chunk
+            context = previous_chunk_text[last_heading_pos:]
+
+            # If context exceeds max chars, take last N characters
+            if len(context) > max_context_chars:
+                context = context[-max_context_chars:]
+
+            return context
+        else:
+            # No heading found, take last N characters from previous chunk
+            if len(previous_chunk_text) > max_context_chars:
+                return previous_chunk_text[-max_context_chars:]
+            else:
+                return previous_chunk_text
+
+    @staticmethod
+    def _append_the_explanation_over_code_example(chunks: list[str]) -> list[str]:
+        """
+        Post-process chunks to add context to code blocks that start chunks.
+
+        When a chunk starts with a code block (Copy\n```), we prepend context from
+        the previous chunk (from the last heading onwards) to provide explanation.
+
+        Args:
+            chunks: List of text chunks
+
+        Returns:
+            Enhanced chunks with context prepended where needed
+        """
+        # Pattern to detect if chunk starts with code block
+        # ^\s* = optional whitespace at start, Copy = literal text, \s*\n = optional space + newline, ``` = code fence
+        code_block_start_pattern = r'^\s*Copy\s*\n```'
+
+        enhanced_chunks = []
+
+        for i, chunk in enumerate(chunks):
+            # Check if this chunk starts with a code block
+            if re.match(code_block_start_pattern, chunk):
+                # We need context from previous chunk
+                if i > 0:  # Make sure there IS a previous chunk
+                    previous_chunk = chunks[i - 1]
+
+                    # Extract context from previous chunk (from last heading onwards)
+                    context = Chunker._get_context_from_previous_chunk(
+                        previous_chunk,
+                        max_context_chars=3000
+                    )
+
+                    # Prepend context to current chunk
+                    enhanced_chunk = context + '\n\n' + chunk
+                    enhanced_chunks.append(enhanced_chunk)
+
+                    logger.info(
+                        f"Added context ({len(context)} chars) from previous chunk to code block chunk"
+                    )
+                else:
+                    # First chunk starts with code block, no previous chunk to reference
+                    enhanced_chunks.append(chunk)
+                    logger.debug("First chunk starts with code block, no context to add")
+            else:
+                # Regular chunk, no modification needed
+                enhanced_chunks.append(chunk)
+
+        return enhanced_chunks
+
     def chunk(self, content: str, url: str) -> list[str]:
         """
         Split content into semantically coherent chunks.
@@ -302,70 +411,15 @@ class Chunker:
         # Step 2: Fix incomplete code blocks
         fixed_chunks = self._fix_incomplete_code_blocks(chunks)
 
+        # Step 3: Merge tiny chunks into bigger ones
         extended_chunks = self._add_tiny_chunks_into_bigger_one(fixed_chunks)
 
-        return extended_chunks
+        # Step 4: Add context to code blocks that start chunks
+        final_chunks = self._append_the_explanation_over_code_example(extended_chunks)
+
+        logger.info(f"[CHUNK COMPLETE] Generated {len(final_chunks)} chunks for {url}")
+
+        length_of_final_chunks = [len(chunk) for chunk in final_chunks]
 
 
-'''
-import logging
-
-from docling.chunking import HybridChunker
-from docling.datamodel.base_models import InputFormat
-from docling.document_converter import DocumentConverter
-
-from config import settings
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=settings.LOGGING_LEVEL)
-
-
-class Chunker:
-    """
-    Service for chunking documents using Docling's hybrid strategy.
-
-    Converts markdown content into Docling documents and applies hybrid
-    chunking to create semantically coherent text segments suitable for
-    embedding and retrieval.
-
-    Attributes:
-        converter: DocumentConverter instance for markdown processing
-        chunker: HybridChunker instance for intelligent text segmentation
-    """
-
-    def __init__(self):
-        """Initialize chunker with Docling converter and chunker."""
-        self.converter = DocumentConverter()
-        self.chunker = HybridChunker()
-
-    def chunk(self, content: str, url: str) -> list[str]:
-        """
-        Convert markdown content to document and chunk it.
-
-        Args:
-            content: Markdown source content to chunk
-            url: Source URL (for logging purposes)
-
-        Returns:
-            List of text chunks as strings
-
-        Raises:
-            Exception: If document conversion or chunking fails
-        """
-        # Convert str document to Docling Document
-        doc = self.converter.convert_string(
-            content=content,
-            format=InputFormat.MD,
-            name=None
-        ).document
-
-        chunk_iter = self.chunker.chunk(dl_doc=doc)
-
-        # Convert Docling Document chunks to string format
-        chunks = [chunk.text for chunk in chunk_iter]
-
-        logger.info(f"[CHUNK COMPLETE] Generated chunks for {url}")
-        length_of_chunks = [len(chunk) for chunk in chunks]
-        return chunks
-'''
+        return final_chunks

@@ -8,8 +8,7 @@ from elite_craft.tools.web_search import WebSearch
 class WebSearchSchema(BaseModel):
     """Schema for web search tool input validation."""
 
-    query: str = Field(description="Generate the most relevant search terms "
-                                   "using keywords. ")
+    query: str = Field(description='Generate the most relevant search terms using keywords.')
 
 class RetrieverSchema(BaseModel):
     """Schema for retriever tool input validation."""
@@ -56,22 +55,36 @@ class Handler:
             LangChain tool that performs semantic search against
             documentation knowledge base
         """
-        @tool("retriever_tool", args_schema=RetrieverSchema)
+        @tool("retriever_tool", #args_schema=RetrieverSchema
+        )
         def retriever_tool(query: str) -> list[dict]:
             """
-            Retrieve relevant documentation chunks from the agent development knowledge base using semantic search.
+            Retrieve documentation about LangChain, LangGraph, and Docling FRAMEWORKS from the knowledge base.
 
-            **WHAT THIS TOOL DOES**:
-            Performs vector similarity search against a curated database of agent development documentation
-            (LangChain). Uses embedding-based semantic search to find
-            the most contextually relevant chunks of documentation that match your query.
+            This tool contains knowledge about AGENT FRAMEWORK CONCEPTS AND PATTERNS:
+            - How to build agents, multi-agent systems, and orchestration
+            - How to add tools/functions to agents
+            - How to implement streaming, memory, state management
+            - How to add human-in-the-loop, approval workflows
+            - How to structure graphs, nodes, edges, routing
+            - LangChain/LangGraph APIs and architecture patterns
+            - Middleware, callbacks, checkpointing
+            - RAG chains and retrieval patterns
 
-            **WHEN TO USE THIS TOOL**:
-            - ANY agent-related queries
-            - Building, creating, or implementing agents
-            - Questions about LangChain, LangGraph, Deep Agents frameworks
-            - Agent patterns: tools, memory, state management, streaming, Human-in-the-Loop
-            - Architecture decisions for agent systems
+            This tool does NOT contain:
+            - External API integrations (SendGrid, Slack, Stripe, databases, etc.)
+            - Real-time framework updates or breaking changes
+            - General Python programming unrelated to agent frameworks
+
+            For hybrid queries (e.g., "build an agent that sends emails"), use this tool to learn
+            the AGENT PATTERNS (how to structure agents and add tools), then use web_search_tool
+            for the DOMAIN KNOWLEDGE (email API integration).
+
+            Args:
+                query: This query will use to search for relevant documentation in database by embedding-based semantic search.
+
+            Returns:
+                List of documentation chunks with content, URLs, and similarity scores.
             """
             response = self.retriever.retrieve_relevant_chunks(
                 query=query,
@@ -88,16 +101,27 @@ class Handler:
             LangChain tool that performs real-time web search
             using Tavily API
         """
-        @tool("web_search_tool", args_schema=WebSearchSchema)
+        @tool("web_search_tool", #args_schema=WebSearchSchema
+         )
         def web_search_tool(query: str) -> dict:
             """
-            Search the web for current information using Tavily.
+            Search the web for real-time information and external API documentation.
 
-            The tool performs real-time web search and returns relevant
-            results with snippets, URLs, and metadata.
+            USE THIS TOOL FOR:
+            - External API integrations (SendGrid, Slack, Stripe, Twilio, databases, etc.)
+            - Real-time framework updates, breaking changes, latest releases
+            - Current events, news, up-to-date information
+            - Documentation for libraries/services not in the knowledge base
+            - When retriever_tool returns insufficient or irrelevant results
+
+            This tool performs live web search and returns ranked results with content snippets,
+            source URLs, and relevance metadata.
+
+            Args:
+                query: Web search query using relevant keywords for best results.
 
             Returns:
-                Dictionary containing web search results with URLs, snippets, and metadata
+                Dictionary with search results including URLs, content snippets, and metadata.
             """
             response = self.web_searcher.web_search(query)
 
