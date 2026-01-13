@@ -11,13 +11,12 @@ RUN useradd -m -u 1000 sandbox && \
 # Install common dependencies your agents might generate code for
 # Pre-installing avoids runtime pip installs (faster + more secure)
 RUN pip install --no-cache-dir \
-    langchain==0.3.14 \
-    langchain-core==0.3.28 \
-    langgraph==0.2.59 \
-    pydantic==2.10.5 \
-    numpy==2.2.1 \
-    pandas==2.2.3 \
-    requests==2.32.3
+    langchain>=1.1.0 \
+    langchain-core>=1.2.7 \
+    pydantic>=2.10.5 \
+    numpy>=2.2.1 \
+    pandas>=2.2.3 \
+    requests>=2.32.3
 
 # Set working directory
 WORKDIR /sandbox

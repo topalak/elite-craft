@@ -24,6 +24,8 @@ dependencies = [
     "langchain-text-splitters>=1.0.0",
     "google-genai>=1.56.0",
     "langchain-community>=0.4.1",
+    "docker>=7.1.0",
+    "langchain-core>=1.2.7",
 ]
 
 [tool.pytest.ini_options]

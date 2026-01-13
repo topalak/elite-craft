@@ -197,17 +197,11 @@ class Crafter:
         self,
         llm_model: str,
         llm_api_key: str,
-        supabase_url: str,
-        supabase_api_key: str,
         tavily_api_key: str,
-        embedding_model: str,
         use_ollama_local: bool = False,
         ollama_provider_url: str = None,
     ):
         self.handler = Handler(
-            supabase_url=supabase_url,
-            supabase_api_key=supabase_api_key,
-            embedding_model=embedding_model,
             tavily_api_key=tavily_api_key
         )
 
@@ -222,7 +216,7 @@ class Crafter:
         self.checkpointer = InMemorySaver()
         self.agent = create_agent(
             model=self.llm,
-            tools=[self.handler.get_retriever_tool(),
+            tools=[self.handler.get_code_executor_tool(),
                    self.handler.get_web_search_tool()
                    ],
             system_prompt=SYSTEM_INSTRUCTIONS,

@@ -7,20 +7,16 @@ This is the backend HTTP server that:
 - Returns JSON responses
 - Runs on a port you decide
 """
-import json
 import logging
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from elite_craft.agent.crafter_agent import Crafter
-from elite_craft.services.update_db_pipeline import UpdateDBPipeline
 from elite_craft.api.schemas import (
     QuestionRequest,
     QuestionResponse,
-    UpdateDBRequest,
-    UpdateDBResponse,
 )
 
 
@@ -52,25 +48,11 @@ crafter = Crafter(
     llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
     use_ollama_local=settings.USE_OLLAMA_LOCAL,
     ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
-    supabase_url=settings.SUPABASE_URL.get_secret_value(),
-    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
-    embedding_model=settings.EMBEDDING_MODEL,
     tavily_api_key=settings.TAVILY_API_KEY.get_secret_value(),
 
 )
 
 logger.info("✅ Crafter agent initialized")
-
-# Initialize UpdateDBPipeline
-pipeline = UpdateDBPipeline(
-    embedding_model=settings.EMBEDDING_MODEL,
-    supabase_url=settings.SUPABASE_URL.get_secret_value(),
-    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
-    chunk_size=settings.CHUNK_SIZE,
-    chunk_overlap=settings.CHUNK_OVERLAP
-)
-
-logger.info("✅ UpdateDBPipeline initialized")
 
 
 # ============================================
@@ -107,36 +89,10 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
         )
 
     try:
-        # Call Crafter agent - invoke directly to get full result with chunks
-        agent_result = crafter.agent.invoke(
-            input={"messages": [{"role": "user", "content": request.query}]},
-            config={"configurable": {"thread_id": settings.DEFAULT_THREAD_ID}},
-        )
+        # Call Crafter agent using the ask method
+        answer = crafter.ask(query=request.query, print_to_cli=False)
 
-        # Extract answer from final message
-        answer = agent_result["messages"][-1].content
-
-        # Extract retrieved chunks from tool messages
-        retrieved_chunks = []
-        for message in agent_result["messages"]:
-            # Check if this is a tool message (contains retriever results)
-            if hasattr(message, 'type') and message.type == 'tool':
-                # Tool messages contain the tool's return value
-                if isinstance(message.content, list):
-                    retrieved_chunks.extend(message.content)
-                elif isinstance(message.content, str):
-                    # Sometimes content is stringified, try to parse it
-                    try:
-                        parsed = json.loads(message.content)
-                        if isinstance(parsed, list):
-                            retrieved_chunks.extend(parsed)
-                    except (json.JSONDecodeError, TypeError):
-                        pass   #todo debugging
-
-        return QuestionResponse(
-            answer=answer,
-            retrieved_chunks=retrieved_chunks
-        )
+        return QuestionResponse(answer=answer)
 
     except TimeoutError as e:
         logger.error(f"LLM request timeout: {e}")
@@ -153,94 +109,14 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
         )
 
     except Exception as e:
-        # Check if it's a database-related error
-        error_name = type(e).__name__
-        error_msg = str(e)
-
-        if "supabase" in error_name.lower() or "postgrest" in error_name.lower():
-            logger.error(f"Database error: {error_msg}")
-            # In production, don't expose internal error details
-            if settings.DEBUG:
-                detail = f"Database error: {error_msg}"
-            else:
-                detail = "Database service is unable to handle that task. "
-            raise HTTPException(status_code=503, detail=detail)
-
         # Unknown error - log with full context
         logger.exception(f"Unexpected error in ask_question: {e}")
         # In production, return generic error message
         if settings.DEBUG:
-            detail = f"Error: {error_msg}"
+            detail = f"Error: {str(e)}"
         else:
             detail = "An internal error occurred. Please contact support if this persists."
         raise HTTPException(status_code=500, detail=detail)
-
-
-@app.post("/api/update-db", response_model=UpdateDBResponse)
-async def update_database(
-    request: UpdateDBRequest,
-    background_tasks: BackgroundTasks
-) -> UpdateDBResponse:
-    """
-    Trigger database update with new documentation URLs.
-
-    This endpoint crawls the provided URLs, chunks the content,
-    generates embeddings, and stores them in Supabase.
-    The process runs in the background to avoid blocking the request.
-
-    Args:
-        request: Contains list of URLs to process
-        background_tasks: FastAPI background task manager
-
-    Returns:
-        Status message indicating the update has started
-
-    Example:
-        POST http://localhost:8000/api/update-db
-        Body: {"urls": ["https://docs.langchain.com/..."]}
-    """
-    # Input validation
-    if not request.urls:
-        raise HTTPException(
-            status_code=400,
-            detail="URL list cannot be empty"
-        )
-
-    try:
-        logger.info(f"Database update requested for {len(request.urls)} URLs")
-
-        # Add task to background - doesn't block the response
-        background_tasks.add_task(
-            pipeline.process_multiple_urls,
-            request.urls
-        )
-
-        return UpdateDBResponse(
-            status="started",
-            message=f"Database update started for {len(request.urls)} URLs",
-            urls_count=len(request.urls)
-        )
-
-    except TimeoutError as e:
-        logger.error(f"Database connection timeout: {e}")
-        raise HTTPException(
-            status_code=504,  # Gateway Timeout
-            detail="Database connection timed out. Please try again."
-        )
-
-    except ConnectionError as e:
-        logger.error(f"Cannot connect to database: {e}")
-        raise HTTPException(
-            status_code=503,  # Service Unavailable
-            detail="Database connection unavailable"
-        )
-
-    except Exception as e:
-        logger.exception(f"Unexpected error starting database update: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to start database update"
-        )
 
 
 # Entry point for running with uvicorn
