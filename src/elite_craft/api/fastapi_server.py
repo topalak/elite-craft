@@ -48,8 +48,10 @@ crafter = Crafter(
     llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
     use_ollama_local=settings.USE_OLLAMA_LOCAL,
     ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
+    supabase_url=settings.SUPABASE_URL.get_secret_value(),
+    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
+    embedding_model=settings.EMBEDDING_MODEL,
     tavily_api_key=settings.TAVILY_API_KEY.get_secret_value(),
-
 )
 
 logger.info("✅ Crafter agent initialized")
