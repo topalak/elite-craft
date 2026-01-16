@@ -6,6 +6,7 @@ Contextual Retrieval (using prompt caching) and reranking.
 """
 import logging
 
+from elite_craft.enums import Provider
 from elite_craft.model_provider import ModelConfig
 
 
@@ -38,7 +39,10 @@ class Embedder:
         """
         self.model_name = model
         self.batch_size = batch_size
-        embedding_model_config = ModelConfig(model=model)
+        embedding_model_config = ModelConfig(
+            model=model,
+            provider=Provider.OLLAMA_LOCAL
+        )
         self.embedding_model = embedding_model_config.get_embedding()
 
     def embed(self, chunks: list[str], url: str) -> list[list[float]]:

@@ -18,6 +18,7 @@ from elite_craft.api.schemas import (
     QuestionRequest,
     QuestionResponse,
 )
+from elite_craft.enums import Provider
 
 
 # Configure logging
@@ -46,7 +47,7 @@ app.add_middleware(
 crafter = Crafter(
     llm_model=settings.LLM_NAME,
     llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
-    use_ollama_local=settings.USE_OLLAMA_LOCAL,
+    llm_provider=Provider(settings.LLM_PROVIDER),  # Convert string to enum
     ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
     supabase_url=settings.SUPABASE_URL.get_secret_value(),
     supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),

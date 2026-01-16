@@ -10,6 +10,7 @@ import os
 
 from config import settings
 from elite_craft.agent.crafter_agent import Crafter
+from elite_craft.enums import Provider
 
 
 # Configure root logger to control ALL loggers in the application
@@ -34,9 +35,12 @@ if __name__ == "__main__":
 
     crafter = Crafter(
         llm_model=settings.LLM_NAME,
-        use_ollama_local=settings.USE_OLLAMA_LOCAL,
-        ollama_provider_url=settings.OLLAMA_HOST_LOCAL.get_secret_value(),
         llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
+        llm_provider=Provider(settings.LLM_PROVIDER),  # Convert string to enum
+        ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
+        supabase_url=settings.SUPABASE_URL.get_secret_value(),
+        supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
+        embedding_model=settings.EMBEDDING_MODEL,
         tavily_api_key=settings.TAVILY_API_KEY.get_secret_value(),
     )
 

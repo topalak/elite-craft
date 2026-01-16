@@ -2,6 +2,7 @@ import logging
 
 from supabase import Client, create_client
 
+from elite_craft.enums import Provider
 from elite_craft.model_provider import ModelConfig
 
 
@@ -26,7 +27,10 @@ class Retriever:
         supabase_api_key: str,
         embedding_model_name: str
     ):
-        embedding_model_config = ModelConfig(model=embedding_model_name)
+        embedding_model_config = ModelConfig(
+            model=embedding_model_name,
+            provider=Provider.OLLAMA_LOCAL
+        )
         self.embedding_model = embedding_model_config.get_embedding()
         self.supabase_client: Client = create_client(
             supabase_url,

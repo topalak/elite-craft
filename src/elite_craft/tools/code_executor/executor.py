@@ -1,18 +1,21 @@
 """
-Simple Docker-based code executor.
+Simple Docker-based code executor with proxy support.
 """
 
 import tempfile
 from pathlib import Path
 import docker
 
+from config import settings
+
 
 class CodeExecutor:
-    """Execute Python code in Docker sandbox."""
+    """Execute Python code in Docker sandbox with LLM proxy access."""
 
     def __init__(self):
         self.client = docker.from_env()
         self.image = "elite-craft/python-sandbox:latest"
+        self.proxy_secret = settings.PROXY_SECRET
 
     def execute(self, code: str, timeout: int = 30) -> dict:
         """
@@ -31,6 +34,7 @@ class CodeExecutor:
             }
         """
         container = None
+        code_file = None
 
         try:
             # Write code to temp file
@@ -45,7 +49,9 @@ class CodeExecutor:
                 volumes={
                     str(code_file): {'bind': '/tmp/code/exec.py', 'mode': 'ro'}
                 },
-                network_mode="none",
+                environment={"PROXY_SECRET": self.proxy_secret},
+                extra_hosts={'host.docker.internal': 'host-gateway'}, # Access to proxy
+                user="sandbox",  # Non-root user
                 mem_limit="512m",
             )
 
@@ -66,14 +72,28 @@ class CodeExecutor:
 
             return {
                 'stdout': logs,
-                'stderr': '',  # Docker combines them
+                'stderr': '',
                 'exit_code': exit_code,
                 'timed_out': timed_out
+            }
+
+        except Exception as e:
+            return {
+                'stdout': '',
+                'stderr': str(e),
+                'exit_code': -1,
+                'timed_out': False
             }
 
         finally:
             # Cleanup
             if container:
-                container.remove(force=True)
-            if 'code_file' in locals():
-                code_file.unlink()
+                try:
+                    container.remove(force=True)
+                except:
+                    pass
+            if code_file and code_file.exists():
+                try:
+                    code_file.unlink()
+                except:
+                    pass

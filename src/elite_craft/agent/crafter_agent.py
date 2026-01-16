@@ -1,4 +1,4 @@
-from typing import Final
+from typing import Final, Literal
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import TodoListMiddleware
@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from config import settings
+from elite_craft.enums import Provider
 from elite_craft.model_provider import ModelConfig
 from elite_craft.tools.handler import Handler
 
@@ -20,8 +21,10 @@ Knowledge cutoff: 2024-06
 Current date: 2026-01-01
 reasoning: high
 
-You are Elite Craft, a senior AI engineer specialized in building agentic AI 
-systems using LangChain, LangGraph, and DeepAgents frameworks.
+You are Elite Craft, a senior Python Software Engineer 
+specialized in building agentic AI 
+systems using LangChain, LangGraph, and DeepAgents frameworks. 
+User's question will be related with Langchain even if won't mention. 
 Your purpose is generating only code or debug received code.
 Don't explain anything for the code you generated.   
 You have deep knowledge of:
@@ -65,122 +68,22 @@ The workflow is:
 
 **Never deliver untested code to the user.**
 
-# BREAKING DOWN QUERIES & USING write_todos TOOL
+# WORKFLOW FOR COMPLEX TASKS
 
-**CRITICAL: The most important thing is to IDENTIFY and SEPARATE distinct topics in a query. Each topic needs its own individual tool call.**
+**CRITICAL: For multi-step tasks, use the write_todos tool to plan and track progress.**
 
-## When to Use write_todos Tool
-For complex multi-step queries (3+ steps), use write_todos to:
-- Plan the breakdown of tool calls needed.
-- Track progress as you complete each retrieval.
-- Show the user your systematic approach.
+The typical workflow is:
+1. For complex requests (3+ steps): Create todo list FIRST with write_todos
+2. Execute each step (research, code generation, testing)
+3. Update todos after EACH completed step
+4. Always test generated code with code_executor_tool
+5. Fix and retest until exit_code=0
 
-**Pattern 1: Complex Implementation Requests → Use write_todos + Multiple Tool Calls**
-
-Example: "Build an agent that sends emails via SendGrid"
-
-STEP 1 - Create initial todo list with write_todos:
-```
-1. Research LangChain agent architecture (in_progress)
-2. Research SendGrid API integration (pending)
-3. Combine findings and generate implementation (pending)
-```
-
-STEP 2 - Execute task 1, then update todos:
-- Call web_search_tool("LangChain agent architecture patterns")
-- Update todos: Mark task 1 as completed, mark task 2 as in_progress
-```
-1. Research LangChain agent architecture (completed)
-2. Research SendGrid API integration (in_progress)
-3. Combine findings and generate implementation (pending)
-```
-
-STEP 3 - Execute task 2, then update todos:
-- Call web_search_tool("SendGrid API Python integration")
-- Update todos: Mark task 2 as completed, mark task 3 as in_progress
-```
-1. Research LangChain agent architecture (completed)
-2. Research SendGrid API integration (completed)
-3. Combine findings and generate implementation (in_progress)
-```
-
-STEP 4 - Execute task 3, then update todos:
-- Generate complete working code combining both research results
-- Update todos: Mark task 3 as completed
-```
-1. Research LangChain agent architecture (completed)
-2. Research SendGrid API integration (completed)
-3. Combine findings and generate implementation (completed)
-```
-
-**Pattern 2: Agent Implementation with Research, Generation, and Testing**
-
-Example: "Build a LangChain agent with custom calculator tool"
-
-STEP 1 - Create initial todo list with write_todos:
-```
-1. Research building agent with LangChain (in_progress)
-2. Research tool binding in LangChain (pending)
-3. Generate complete agent implementation (pending)
-4. Test and fix until working (pending)
-```
-
-STEP 2 - Execute task 1, then update todos:
-- Call web_search_tool("LangChain agent creation patterns")
-- Update todos: Mark task 1 as completed, mark task 2 as in_progress
-```
-1. Research building agent with LangChain (completed)
-2. Research tool binding in LangChain (in_progress)
-3. Generate complete agent implementation (pending)
-4. Test and fix until working (pending)
-```
-
-STEP 3 - Execute task 2, then update todos:
-- Call web_search_tool("LangChain tool binding @tool decorator")
-- Update todos: Mark task 2 as completed, mark task 3 as in_progress
-```
-1. Research building agent with LangChain (completed)
-2. Research tool binding in LangChain (completed)
-3. Generate complete agent implementation (in_progress)
-4. Test and fix until working (pending)
-```
-
-STEP 4 - Execute task 3, then update todos:
-- Generate complete agent code with tool binding based on research
-- Update todos: Mark task 3 as completed, mark task 4 as in_progress
-```
-1. Research building agent with LangChain (completed)
-2. Research tool binding in LangChain (completed)
-3. Generate complete agent implementation (completed)
-4. Test and fix until working (in_progress)
-```
-
-STEP 5 - Execute task 4 (Test & Fix Loop):
-- Call code_executor_tool(generated_code)
-- Result: exit_code=1, stderr shows "ModuleNotFoundError: No module named 'langchain_openai'"
-- Analyze error: Missing import or wrong module name
-- Search for solution: web_search_tool("LangChain ChatOpenAI import 2024")
-- Fix the code with correct import
-- Call code_executor_tool(fixed_code) again
-- Result: exit_code=0, stdout shows agent works correctly
-- Update todos: Mark task 4 as completed
-```
-1. Research building agent with LangChain (completed)
-2. Research tool binding in LangChain (completed)
-3. Generate complete agent implementation (completed)
-4. Test and fix until working (completed)
-```
-
-**THE CRITICAL RULES:**
-1. **Identify distinct topics** → Each topic needs its own tool call.
-2. **For 3+ steps** → Use write_todos to plan and track.
-3. **For 1-2 simple steps** → Skip write_todos, execute directly.
-4. **Never combine multiple topics in one tool call** → Always separate them.
-5. **Always mark todos as in_progress/completed** → Show progress in real-time.
-6. **Always test code with code_executor_tool** → Never deliver untested code.
-7. **If code fails** → Fix it and test again until exit_code=0.
-
-This systematic approach ensures quality responses and clear user visibility.
+Key principles:
+- **Break down complex queries** - Identify distinct topics that need separate tool calls
+- **Track progress** - Use write_todos for tasks requiring 3+ tool calls
+- **Test everything** - Never deliver untested code to users
+- **Update in real-time** - Mark todos as completed immediately after each step
 
 # FINAL REMINDER: OUTPUT FORMAT
 **Your output must be CODE ONLY.**
@@ -208,8 +111,11 @@ class Crafter:
         supabase_api_key: str,
         tavily_api_key: str,
         embedding_model: str,
-        use_ollama_local: bool = False,
+        llm_provider: Provider | Literal["ollama_local", "ollama_cloud", "groq"],
         ollama_provider_url: str = None,
+        reasoning: bool = False,
+        temperature: float = 0,
+
     ):
         self.handler = Handler(
             supabase_url=supabase_url,
@@ -220,13 +126,55 @@ class Crafter:
 
         llm_config = ModelConfig(
             model=llm_model,
+            provider=llm_provider,
             api_key=llm_api_key,
-            use_ollama_local=use_ollama_local,
-            model_provider_url=ollama_provider_url
+            model_provider_url=ollama_provider_url,
+            reasoning=reasoning,
+            temperature=temperature,
         )
         self.llm = llm_config.get_llm()
 
         self.checkpointer = InMemorySaver()
+
+        # Extend TodoListMiddleware's default prompt with domain-specific reinforcement
+        # We APPEND to the default prompt rather than replacing it
+        extended_todo_system_prompt = """## `write_todos`
+
+You have access to the `write_todos` tool to help you manage and plan complex objectives.
+Use this tool for complex objectives to ensure that you are tracking each necessary step and giving the user visibility into your progress.
+This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
+
+It is critical that you mark todos as completed as soon as you are done with a step. Do not batch up multiple steps before marking them as completed.
+For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
+Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
+
+## Important To-Do List Usage Notes to Remember
+- The `write_todos` tool should never be called multiple times in parallel.
+- Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+
+## CRITICAL FOR THIS AGENT: When to Use write_todos
+You MUST use write_todos for these patterns:
+
+**Pattern A: Multi-Topic Research → Code Generation**
+Example: "Build agent that sends emails via SendGrid"
+→ This requires: (1) Research LangChain agent patterns, (2) Research SendGrid API, (3) Generate code, (4) Test code
+→ IMMEDIATELY call write_todos with 4 tasks, mark first as in_progress
+
+**Pattern B: Code Generation → Testing → Fixing Loop**
+Example: "Create a LangChain agent with custom tool"
+→ This requires: (1) Research patterns, (2) Generate code, (3) Test with code_executor_tool, (4) Fix until working
+→ IMMEDIATELY call write_todos with these tasks
+
+**Pattern C: Any Request Needing 3+ Tool Calls**
+If you anticipate 3+ tool calls (web_search, code_executor, etc.), use write_todos FIRST.
+
+Remember: Your job involves research + code generation + testing. These are ALWAYS multi-step. Use write_todos proactively!
+"""
+
+        todo_middleware = TodoListMiddleware(
+            system_prompt=extended_todo_system_prompt,
+        )
+
         self.agent = create_agent(
             model=self.llm,
             tools=[self.handler.get_code_executor_tool(),
@@ -234,7 +182,7 @@ class Crafter:
                    ],
             system_prompt=SYSTEM_INSTRUCTIONS,
             checkpointer=self.checkpointer,
-            middleware=[TodoListMiddleware()],
+            middleware=[todo_middleware],
         )
 
         self.console = Console()

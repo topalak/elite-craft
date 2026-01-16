@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
     SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
     TAVILY_API_KEY: SecretStr = ""
+
+    # Code executor proxy authentication
+    PROXY_SECRET: str = "dev-secret-12345"  
     LANGSMITH_TRACING: str = "true"
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: SecretStr = ""
@@ -63,7 +66,7 @@ class Settings(BaseSettings):
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     LLM_NAME: str = "gpt-oss:120b-cloud"
-
+    LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq"
 
     # API server configuration
     # These variables must be set

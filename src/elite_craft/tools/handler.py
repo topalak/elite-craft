@@ -11,7 +11,7 @@ class RetrieverSchema(BaseModel):
 class WebSearchSchema(BaseModel):
     """Schema for web search tool input validation."""
 
-    query: str = Field(description='Generate the most relevant search terms using keywords.')
+    query: str = Field(description='Generate the most relevant search terms using keywords. Keep query simple as possible.')
 
 class CodeExecutorSchema(BaseModel):
     """Schema for code executor tool input validation."""
@@ -59,8 +59,7 @@ class Handler:
             LangChain tool that performs real-time web search
             using Tavily API
         """
-        @tool("web_search_tool", #args_schema=WebSearchSchema
-         )
+        @tool("web_search_tool", args_schema=WebSearchSchema)
         def web_search_tool(query: str) -> dict:
             """
             Search the web for real-time information using Tavily API.
@@ -100,8 +99,7 @@ class Handler:
             LangChain tool that executes Python code in isolated
             Docker sandbox with security controls
         """
-        @tool("code_executor_tool", #args_schema=CodeExecutorSchema
-        )
+        @tool("code_executor_tool", args_schema=CodeExecutorSchema)
         def code_executor_tool(code: str) -> dict:
             """
             Execute Python code in a secure Docker sandbox environment.
@@ -152,8 +150,7 @@ class Handler:
             LangChain tool that performs semantic search against
             documentation knowledge base
         """
-        @tool("retriever_tool", #args_schema=RetrieverSchema
-        )
+        @tool("retriever_tool", args_schema=RetrieverSchema)
         def retriever_tool(query: str) -> list[dict]:
             """
             Retrieve documentation about LangChain, LangGraph, and Docling FRAMEWORKS from the knowledge base.
