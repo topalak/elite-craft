@@ -25,6 +25,7 @@ from elite_craft.enums import Provider
 logger = logging.getLogger(__name__)
 logger.setLevel(settings.LOGGING_LEVEL)
 
+#todo fix the python path problem
 # Create FastAPI app
 app = FastAPI(
     title="Elite Craft API",

@@ -104,14 +104,15 @@ class Handler:
             """
             Execute Python code in a secure Docker sandbox environment.
 
-            MANDATORY USE: You MUST call this tool every time you create code to verify it works.
-            You will receive output regardless of success or failure.
+            USAGE WORKFLOW:
+            1. Generate ALL your code first (complete implementation)
+            2. Call this tool ONCE with the complete code
+            3. If exit_code == 0 → Success, deliver code to user
+            4. If exit_code != 0 → Fix the code and call this tool again
+            5. Repeat until exit_code == 0
 
-            WHEN TO USE:
-            - Every time you generate code - test it immediately
-            - To validate code functionality before delivering to user
-            - To verify syntax and runtime behavior
-            - To check if dependencies are available and working
+            DO NOT call this tool multiple times during code generation.
+            Generate first, test once at the end, then loop if needed.
 
             SECURITY FEATURES:
             - Isolated Docker container (no access to host system)
@@ -121,13 +122,13 @@ class Handler:
             - Automatic timeout and cleanup
 
             PRE-INSTALLED PACKAGES:
-            - langchain, langchain-core
+            - langchain, langchain-core, langchain-groq, langchain-ollama
             - pydantic
             - numpy, pandas
             - requests
 
             Args:
-                code: Python code to execute (string)
+                code: Complete Python code to execute (string)
 
             Returns:
                 Dictionary with execution results:

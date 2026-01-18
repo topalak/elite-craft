@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir \
     pandas>=2.2.3 \
     requests>=2.32.3
 
+# Add sandbox utilities with pre-configured model
+COPY sandbox_utils.py /usr/local/lib/python3.13/site-packages/sandbox_utils.py
+
 # Set working directory
 WORKDIR /sandbox
 
