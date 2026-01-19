@@ -1,6 +1,5 @@
 from tavily import TavilyClient
 
-
 domains = [
     "https://docs.langchain.com/oss/python/langchain/install",
     "https://docs.langchain.com/oss/python/langchain/quickstart",
@@ -31,6 +30,8 @@ domains = [
     "https://docs.langchain.com/oss/python/langchain/retrieval",
     "https://docs.langchain.com/oss/python/langchain/long-term-memory"
     ]
+
+
 class WebSearch:
     """
     Web search interface using Tavily API.
@@ -69,10 +70,11 @@ class WebSearch:
         """
         response = self.client.search(
             query=query,
-            include_images=False,
-            include_image_descriptions=True,
+            max_results=10,
             search_depth="advanced",
-            include_domains=domains,
+            chunks_per_source=5,
+
+           # include_domains=domains,
         )
         return response
 

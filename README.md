@@ -129,13 +129,20 @@ cd elite-craft
 uv sync
 ```
 
-3. Configure environment variables:
+3. Install the package in editable mode:
+```bash
+uv pip install -e .
+```
+
+This allows you to run all commands without setting `PYTHONPATH` every time. Changes to the code are immediately available without reinstalling.
+
+4. Configure environment variables:
 ```bash
 cp .env.example .env
 # Edit .env with your credentials
 ```
 
-4. Set up the database:
+5. Set up the database:
 ```sql
 -- Run these SQL files in Supabase SQL Editor in order:
 -- 1. src/elite_craft/database/db_table_setup.sql (creates tables)
@@ -183,7 +190,7 @@ The backend exposes REST endpoints for the Crafter agent:
 
 ```bash
 # Start the FastAPI server (from project root)
-PYTHONPATH=./src uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
+uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 **Access:**
@@ -199,33 +206,52 @@ The frontend provides a user-friendly chat interface:
 
 ```bash
 # Start the Streamlit app (from project root)
-PYTHONPATH=./src streamlit run src/elite_craft/frontend/app.py
+streamlit run src/elite_craft/frontend/app.py
 ```
 
 **Access:**
 - Local URL: `http://localhost:8502`
 
-**Important:** Both services require `PYTHONPATH` to be set because `config.py` is located in the `src/` directory.
+### 3. Proxy Server (Optional)
 
-### Running Both Services
+The proxy server provides secure API access for sandboxed code execution:
 
-Open two terminal windows and run each command in a separate terminal:
+```bash
+# Start the proxy server (from project root)
+uvicorn elite_craft.api.proxy_server:app --host 0.0.0.0 --port 4000 --reload
+```
+
+**Access:**
+- Proxy Server: `http://localhost:4000`
+- Health Check: `http://localhost:4000/health`
+
+### Running Multiple Services
+
+Open separate terminal windows for each service:
 
 ```bash
 # Terminal 1 - Backend
-PYTHONPATH=./src uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
+uvicorn elite_craft.api.fastapi_server:app --host 0.0.0.0 --port 8000 --reload
 
 # Terminal 2 - Frontend
-PYTHONPATH=./src streamlit run src/elite_craft/frontend/app.py
+streamlit run src/elite_craft/frontend/app.py
+
+# Terminal 3 (Optional) - Proxy
+uvicorn elite_craft.api.proxy_server:app --host 0.0.0.0 --port 4000 --reload
 ```
 
-To stop the services, press `CTRL+C` in each terminal.
+To stop any service, press `CTRL+C` in its terminal.
 
 ### Troubleshooting
 
-**Issue: `ModuleNotFoundError: No module named 'config'` or `No module named 'elite_craft'`**
+**Issue: `ModuleNotFoundError: No module named 'elite_craft'`**
 
-This happens when `PYTHONPATH` is not set correctly. Make sure you're running the commands from the project root directory and include `PYTHONPATH=./src` before each command.
+This means you haven't installed the package yet. Run:
+```bash
+uv pip install -e .
+```
+
+This installs the package in editable mode, making the `elite_craft` module available to Python without needing `PYTHONPATH`.
 
 **Issue: Ollama model downloading on first startup**
 
@@ -235,12 +261,17 @@ The FastAPI server will download the required models on first startup:
 
 This is normal and only happens once. Wait for the downloads to complete before making API requests.
 
-**Long-term fix for PYTHONPATH:**
+**Issue: `zsh: command not found: pip`**
 
-To avoid needing `PYTHONPATH` every time, you can:
-1. Install the package in editable mode: `pip install -e .` (requires `setup.py` or proper `pyproject.toml` configuration)
-2. Move `config.py` into the `elite_craft/` package
-3. Add `export PYTHONPATH=./src` to your shell profile (`.bashrc`, `.zshrc`, etc.)
+If you're using `uv` as your package manager, use:
+```bash
+uv pip install -e .
+```
+
+Or use Python's pip module directly:
+```bash
+python -m pip install -e .
+```
 
 ---
 

@@ -13,6 +13,7 @@ RUN useradd -m -u 1000 sandbox && \
 RUN pip install --no-cache-dir \
     langchain>=1.1.0 \
     langchain-core>=1.2.7 \
+    langchain-community>=0.4.1 \
     langchain-groq>=1.0.0 \
     langchain-ollama>=1.0.0 \
     pydantic>=2.10.5 \

@@ -47,42 +47,37 @@ def _get_llm_client():
     else:
         raise ValueError(f"Unsupported provider: {LLM_PROVIDER}")
 
-
 # Initialize LLM client
 llm_client = _get_llm_client()
 
-
-@app.post("/v1/chat/completions")
-async def proxy_chat(request: Request, authorization: str = Header(None)):
+@app.post("/api/chat")
+async def ollama_chat(request: Request, authorization: str = Header(None)):
     """
-    Proxy endpoint for LLM chat completions.
+    Ollama-compatible /api/chat endpoint.
 
-    Requires: Authorization header with PROXY_SECRET
+    Makes the proxy act like an Ollama server for ChatOllama clients.
+    Forwards requests to the real LLM backend (which has the API key).
     """
     # Check authentication
     if authorization != f"Bearer {PROXY_SECRET}":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    # Get request body
+    # Get Ollama request format
     body = await request.json()
     messages = body.get("messages", [])
 
-    # Call LLM
+    # Call backend LLM (has real API key configured)
     response = llm_client.invoke(messages)
 
-    # Return OpenAI-compatible response
+    # Return Ollama response format
     return {
-        "id": "chatcmpl-proxy",
-        "object": "chat.completion",
         "model": body.get("model", LLM_MODEL),
-        "choices": [{
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": response.content
-            },
-            "finish_reason": "stop"
-        }]
+        "created_at": "2024-01-01T00:00:00Z",
+        "message": {
+            "role": "assistant",
+            "content": response.content
+        },
+        "done": True
     }
 
 

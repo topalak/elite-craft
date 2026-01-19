@@ -107,9 +107,13 @@ class Handler:
             USAGE WORKFLOW:
             1. Generate ALL your code first (complete implementation)
             2. Call this tool ONCE with the complete code
-            3. If exit_code == 0 → Success, deliver code to user
-            4. If exit_code != 0 → Fix the code and call this tool again
-            5. Repeat until exit_code == 0
+            3. Check the result:
+               - If exit_code == 0 → SUCCESS! STOP and return the working code to user
+               - If exit_code != 0 → Fix the code and call this tool again with fixed code
+            4. Repeat step 3 until exit_code == 0, then STOP
+
+            CRITICAL: When you receive exit_code == 0, you are DONE.
+            Do NOT call this tool again. Return the working code to the user immediately.
 
             DO NOT call this tool multiple times during code generation.
             Generate first, test once at the end, then loop if needed.
@@ -132,11 +136,11 @@ class Handler:
 
             Returns:
                 Dictionary with execution results:
-                - stdout: Program output
-                - stderr: Error messages
-                - exit_code: 0 for success, non-zero for errors
-                - timed_out: Whether execution exceeded timeout
-                - execution_time: Actual execution duration
+                - stdout: Program output (from stdout stream)
+                - stderr: Error messages (from stderr stream)
+                - exit_code: 0 = success, non-zero = error/failure
+                - timed_out: True if execution exceeded timeout limit
+                - execution_time: Actual execution duration in seconds
             """
             result = self.code_executor.execute(code)
             return result

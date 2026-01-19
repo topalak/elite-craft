@@ -30,11 +30,15 @@ class CodeExecutor:
                 'stdout': str,
                 'stderr': str,
                 'exit_code': int,
-                'timed_out': bool
+                'timed_out': bool,
+                'execution_time': float
             }
         """
+        import time
+
         container = None
         code_file = None
+        start_time = time.time()
 
         try:
             # Write code to temp file
@@ -67,22 +71,28 @@ class CodeExecutor:
                 exit_code = -1
                 timed_out = True
 
-            # Get output
-            logs = container.logs(stdout=True, stderr=True).decode('utf-8')
+            # Get output - separate stdout and stderr
+            stdout = container.logs(stdout=True, stderr=False).decode('utf-8')
+            stderr = container.logs(stdout=False, stderr=True).decode('utf-8')
+
+            execution_time = time.time() - start_time
 
             return {
-                'stdout': logs,
-                'stderr': '',
+                'stdout': stdout,
+                'stderr': stderr,
                 'exit_code': exit_code,
-                'timed_out': timed_out
+                'timed_out': timed_out,
+                'execution_time': round(execution_time, 3)
             }
 
         except Exception as e:
+            execution_time = time.time() - start_time
             return {
                 'stdout': '',
                 'stderr': str(e),
                 'exit_code': -1,
-                'timed_out': False
+                'timed_out': False,
+                'execution_time': round(execution_time, 3)
             }
 
         finally:

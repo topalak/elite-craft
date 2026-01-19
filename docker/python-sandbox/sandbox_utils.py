@@ -21,9 +21,11 @@ from langchain_ollama import ChatOllama
 # Pre-configured model for sandbox LLM access
 # This is created when the module is imported
 # The model uses the proxy server for secure API access
+
+#todo we might need to add the trace pattern here
 model = ChatOllama(
-    model="gpt-oss:120b-cloud",
-    base_url="http://host.docker.internal:4000/v1",
+    model="gpt-oss:20b-cloud",
+    base_url="http://host.docker.internal:4000",
     client_kwargs={
         'headers': {'Authorization': f'Bearer {os.environ.get("PROXY_SECRET", "")}'}
     },
