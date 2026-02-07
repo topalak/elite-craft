@@ -2,7 +2,7 @@
 
 **Forging Elite AI Systems**
 
-An AI-powered assistant that helps developers build and enhance agentic AI projects using LangChain, LangGraph, and related frameworks.
+An AI-powered coding assistant that helps developers build and enhance agentic AI projects using LangChain, LangGraph, and DeepAgents frameworks.
 
 ---
 
@@ -15,51 +15,64 @@ elite-craft/
 │   ├── main_dev.py                            # Development entry point for Crafter agent
 │   └── elite_craft/
 │       ├── __init__.py
+│       ├── enums.py                           # Provider and general enumerations
 │       ├── model_provider.py                  # LLM & embedding model configuration
 │       ├── agent/                             # Agent implementation
 │       │   ├── __init__.py
-│       │   └── crafter_agent.py               # Main RAG agent with LLM and retriever
+│       │   └── crafter_agent.py               # Code generation agent with web search & sandbox
 │       ├── tools/                             # Agent tools
 │       │   ├── __init__.py
 │       │   ├── retriever.py                   # Semantic search retriever with pgvector
-│       │   └── handler.py                     # Tool factory with dependency injection
+│       │   ├── web_search.py                  # Real-time web search via Tavily API
+│       │   ├── handler.py                     # Tool factory with dependency injection
+│       │   └── code_executor/                 # Sandboxed code execution
+│       │       ├── __init__.py
+│       │       └── executor.py                # Docker-based Python sandbox
 │       ├── api/                               # REST API layer
 │       │   ├── __init__.py
 │       │   ├── fastapi_server.py              # FastAPI server with endpoints
+│       │   ├── fastapi_client.py              # Python client for API access
+│       │   ├── proxy_server.py                # Proxy for sandbox LLM access
 │       │   └── schemas.py                     # Pydantic request/response models
 │       ├── frontend/                          # User interface
+│       │   ├── __init__.py
 │       │   └── app.py                         # Streamlit chat interface
 │       ├── services/                          # Core pipeline services
 │       │   ├── __init__.py
+│       │   ├── schemas.py                     # Service-layer Pydantic models
 │       │   ├── crawling.py                    # Async web crawling (Crawl4AI)
-│       │   ├── chunking.py                    # Document chunking (Docling)
-│       │   ├── embedding.py                   # Text embeddings (Ollama/HuggingFace)
+│       │   ├── chunking.py                    # Document chunking (LangChain splitters)
+│       │   ├── embedding.py                   # Text embeddings (Ollama)
 │       │   ├── database_uploading.py          # Supabase upload operations
 │       │   └── update_db_pipeline.py          # End-to-end ingestion pipeline
 │       └── database/                          # Database schema
 │           ├── db_table_setup.sql             # PostgreSQL tables with pgvector
 │           └── db_cosine_similarity_function.sql  # Semantic search function
-├── tests/                                     # Unit tests (100% coverage)
-│   ├── test_chunking.py
-│   ├── test_crawling.py
-│   ├── test_database_uploading.py
-│   ├── test_embedding.py
-│   ├── test_model_provider.py
-│   ├── test_update_db_pipeline.py
-│   ├── are_crawling_outputs_stochastic.py        # Crawl stability analysis
+├── tests/                                     # Unit tests
+│   ├── services/                              # Service layer tests
+│   │   ├── test_chunking.py
+│   │   ├── test_crawling.py
+│   │   ├── test_database_uploading.py
+│   │   ├── test_embedding.py
+│   │   ├── test_model_provider.py
+│   │   └── test_update_db_pipeline.py
+│   ├── test_retrieval_quality.py              # Retrieval quality tests
+│   ├── generated_code_verification.py         # Code generation verification
+│   ├── are_crawling_outputs_stochastic.py     # Crawl stability analysis
 │   └── are_db_chunks_and_crawled_chunks_same.py  # Database validation
-├── .env.example                                  # Environment variables template
+├── .env.example                               # Environment variables template
 ├── pyproject.toml
 └── README.md
 ```
 
 ## Overview
 
-Elite Craft is a RAG-powered assistant specialized in AI agent development. It provides:
-- **Knowledge Base Management**: Crawl and process documentation from LangChain, LangGraph, Pydantic, and Supabase
-- **Semantic Search**: Vector-based retrieval using pgvector and embeddings
-- **Intelligent Responses**: Context-aware answers to technical questions about agent frameworks
-- **Development Assistance**: Best practices guidance for building agentic AI systems
+Elite Craft is a code generation assistant specialized in AI agent development. It provides:
+- **Code Generation**: Generate production-ready Python code for agentic AI systems
+- **Sandboxed Execution**: Test all generated code in isolated Docker containers
+- **Real-time Web Search**: Access current documentation via Tavily API
+- **Knowledge Base**: Semantic search over LangChain, LangGraph, and DeepAgents documentation
+- **Anti-Hallucination**: Strict guardrails ensure framework-specific code is always verified
 
 ---
 
@@ -70,10 +83,16 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 **Orchestration & Agent Framework:**
 - **LangChain**: Core framework for LLM application development
 - **DeepAgents**: Advanced agent patterns built on LangGraph
+- **TodoListMiddleware**: Task planning for complex multi-step code generation
+
+**Agent Tools:**
+- **Tavily**: Real-time web search for current documentation and API references
+- **Docker**: Sandboxed Python code execution with security controls
+- **pgvector**: Semantic search over knowledge base (optional retriever tool)
 
 **Data Processing:**
 - **Crawl4AI**: Asynchronous web crawling with markdown conversion
-- **LangChain Text Splitters**: RecursiveCharacterTextSplitter with intelligent code block handling
+- **LangChain Text Splitters**: RecursiveCharacterTextSplitter with code block handling
 - **Pydantic**: Data validation and settings management with SecretStr for sensitive data
 
 **Vector Database & Search:**
@@ -82,28 +101,32 @@ Elite Craft is a RAG-powered assistant specialized in AI agent development. It p
 
 **Embeddings & LLMs:**
 - **Ollama**: Embedding models (nomic-embed-text:v1.5 - 768 dimensions)
-- Configurable LLM providers:
-  - Ollama Cloud (default: ministral-3:8b-cloud)
-  - Ollama Local (when USE_OLLAMA_LOCAL=true)
-  - Groq Cloud (when use_groq=true)
+- Configurable LLM providers via `Provider` enum:
+  - `Provider.OLLAMA_CLOUD`: Ollama Cloud API (default)
+  - `Provider.OLLAMA_LOCAL`: Local Ollama instance
+  - `Provider.GROQ`: Groq Cloud API
 
 ### Core Components
 
-**Knowledge Base Pipeline:**
-1. **UpdateDBPipeline** (`services/update_db_pipeline.py`): Orchestrates the complete document ingestion workflow
-2. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown with source detection
-3. **Chunker** (`services/chunking.py`): RecursiveCharacterTextSplitter with intelligent code block merging and minimum chunk size enforcement
-4. **Embedder** (`services/embedding.py`): Batched embedding generation with oversized chunk detection
-5. **DatabaseUploader** (`services/database_uploading.py`): Supabase operations with batch inserts and connection pool management
-
 **Agent System:**
-6. **Retriever** (`tools/retriever.py`): Performs semantic search with source filtering
-7. **Handler** (`tools/handler.py`): Factory for creating LangChain tools with proper dependency injection
-8. **Crafter Agent** (`agent/crafter_agent.py`): RAG-powered agent with strict anti-hallucination guardrails
+1. **Crafter Agent** (`agent/crafter_agent.py`): Code generation agent with web search, sandbox execution, and todo planning
+2. **Handler** (`tools/handler.py`): Factory for creating LangChain tools with dependency injection
+3. **WebSearch** (`tools/web_search.py`): Tavily-powered real-time web search
+4. **CodeExecutor** (`tools/code_executor/executor.py`): Docker-based Python sandbox with security controls
+5. **Retriever** (`tools/retriever.py`): Semantic search against documentation knowledge base
+
+**Knowledge Base Pipeline:**
+6. **UpdateDBPipeline** (`services/update_db_pipeline.py`): Orchestrates document ingestion workflow
+7. **Crawler** (`services/crawling.py`): Fetches web content and converts to markdown
+8. **Chunker** (`services/chunking.py`): Document chunking with minimum size enforcement
+9. **Embedder** (`services/embedding.py`): Batched embedding generation
+10. **DatabaseUploader** (`services/database_uploading.py`): Supabase operations with batch inserts
 
 **Application Layer:**
-9. **FastAPI Server** (`api/fastapi_server.py`): REST API exposing `/api/ask` and `/api/update-db` endpoints
-10. **Streamlit App** (`frontend/app.py`): User-friendly chat interface for querying the agent
+11. **FastAPI Server** (`api/fastapi_server.py`): REST API exposing `/api/ask` and `/api/update-db` endpoints
+12. **FastAPI Client** (`api/fastapi_client.py`): Python client for programmatic API access
+13. **Proxy Server** (`api/proxy_server.py`): Secure proxy for sandbox LLM access
+14. **Streamlit App** (`frontend/app.py`): User-friendly chat interface
 
 ---
 
@@ -166,15 +189,24 @@ LANGSMITH_TRACING=false
 
 # LLM Provider API Keys
 OLLAMA_API_KEY=your-ollama-key
+GROQ_API_KEY=your-groq-key  # Optional: for Groq provider
+
+# Web Search
+TAVILY_API_KEY=your-tavily-key
+
+# Code Executor Proxy
+PROXY_SECRET=your-proxy-secret  # For sandbox LLM access
 ```
 
 The configuration is managed through Pydantic Settings in `src/config.py` with the following defaults:
 - Embedding model: `nomic-embed-text:v1.5` (768-dimensional vectors)
-- LLM: `ministral-3:8b-cloud` (Ollama Cloud)
-- Chunk size: 1000 characters with 300 character overlap
+- LLM: `gpt-oss:120b-cloud` (Ollama Cloud)
+- LLM Provider: `ollama_cloud` (options: `ollama_cloud`, `ollama_local`, `groq`)
+- Chunk size: 1000 characters with 200 character overlap
 - Minimum chunk size: 500 characters
 - Batch size for database uploads: 100
 - Embedding batch size: 20 chunks per API call
+- API request timeout: 90 seconds
 - Timezone: UTC+3
 - Security: All API keys and secrets use Pydantic SecretStr for enhanced protection
 
@@ -338,7 +370,7 @@ URL → Crawl → Upload Metadata → Chunk → Embed → Upload Chunks → Comp
 
 ## Testing
 
-Elite Craft maintains **100% test coverage** for all core services with comprehensive unit tests.
+Elite Craft maintains comprehensive unit tests for all core services.
 
 ### Running Tests
 
@@ -350,7 +382,7 @@ pytest
 pytest --cov
 
 # Run specific test file
-pytest tests/test_crawling.py -v
+pytest tests/services/test_crawling.py -v
 
 # Run with detailed coverage report
 pytest --cov --cov-report=html
@@ -358,29 +390,30 @@ pytest --cov --cov-report=html
 
 ### Test Coverage
 
-**Core Services - 100% Coverage:**
+**Core Services:**
 - ✅ `config.py` - Configuration and settings management
-- ✅ `model_provider.py` - LLM and embedding model providers
+- ✅ `model_provider.py` - LLM and embedding model providers (Ollama, Groq)
 - ✅ `services/crawling.py` - Web crawling and source extraction
 - ✅ `services/chunking.py` - Document chunking logic
 - ✅ `services/embedding.py` - Embedding generation
 - ✅ `services/database_uploading.py` - Database operations
 - ✅ `services/update_db_pipeline.py` - End-to-end pipeline orchestration
 
-**Overall Project Coverage: ~90%**
-
 ### Test Structure
 
 ```
 tests/
-├── test_chunking.py                         # Document chunking tests
-├── test_crawling.py                         # Web crawling and source mapping
-├── test_database_uploading.py               # Supabase operations
-├── test_embedding.py                        # Embedding generation
-├── test_model_provider.py                   # Model configuration (Ollama, Groq)
-├── test_update_db_pipeline.py               # Pipeline integration tests
-└── are_crawling_outputs_stochastic.py       # Crawl stability analysis script
-└── are_db_chunks_and_crawled_chunks_same.py # Checks database and crawled chunks
+├── services/                                # Service layer unit tests
+│   ├── test_chunking.py                     # Document chunking tests
+│   ├── test_crawling.py                     # Web crawling and source mapping
+│   ├── test_database_uploading.py           # Supabase operations
+│   ├── test_embedding.py                    # Embedding generation
+│   ├── test_model_provider.py               # Model configuration (Ollama, Groq)
+│   └── test_update_db_pipeline.py           # Pipeline integration tests
+├── test_retrieval_quality.py                # Retrieval quality validation
+├── generated_code_verification.py           # Code generation verification
+├── are_crawling_outputs_stochastic.py       # Crawl stability analysis script
+└── are_db_chunks_and_crawled_chunks_same.py # Database validation script
 ```
 
 ### Crawl Stability Analysis
@@ -459,7 +492,8 @@ Contributions are welcome! Please ensure:
 
 ## Acknowledgments
 
-- Built with [LangChain](https://docs.langchain.com/)
+- Built with [LangChain](https://docs.langchain.com/) and [DeepAgents](https://docs.langchain.com/oss/python/deepagents/overview)
 - Powered by [Supabase](https://supabase.com/)
-- Document processing by [Docling](https://docling-project.github.io/)
+- Web search by [Tavily](https://tavily.com/)
 - Web crawling by [Crawl4AI](https://docs.crawl4ai.com/)
+- Sandboxed execution with [Docker](https://www.docker.com/)
