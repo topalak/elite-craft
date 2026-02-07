@@ -35,4 +35,3 @@ class CrawledData(BaseModel):
     body_text: str
     crawled_time: datetime | str
     source: str
-

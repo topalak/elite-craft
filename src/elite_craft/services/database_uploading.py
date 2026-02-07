@@ -89,7 +89,6 @@ class SupabaseUploadService:
             embeddings: list[list[float]],
             document_id: int,
             url: str | AnyUrl,
-            # add here crawled data model
     ) -> dict:
         """
         Insert text chunks with embeddings in batches.

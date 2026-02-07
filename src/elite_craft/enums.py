@@ -18,3 +18,17 @@ class GeneralEnums(StrEnum):
     BODY_PREVIEW = "body_preview"
     DOCUMENTS = "documents"
     CHUNKS = "chunks"
+
+
+class Provider(StrEnum):
+    """
+    Supported LLM providers.
+
+    Attributes:
+        OLLAMA_LOCAL: Local Ollama instance (requires model_provider_url)
+        OLLAMA_CLOUD: Ollama Cloud API (requires api_key)
+        GROQ: Groq Cloud API (requires api_key)
+    """
+    OLLAMA_LOCAL = "ollama_local"
+    OLLAMA_CLOUD = "ollama_cloud"
+    GROQ = "groq"

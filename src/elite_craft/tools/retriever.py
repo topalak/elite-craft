@@ -2,6 +2,7 @@ import logging
 
 from supabase import Client, create_client
 
+from elite_craft.enums import Provider
 from elite_craft.model_provider import ModelConfig
 
 
@@ -26,29 +27,29 @@ class Retriever:
         supabase_api_key: str,
         embedding_model_name: str
     ):
-        embedding_model_config = ModelConfig(model=embedding_model_name)
+        embedding_model_config = ModelConfig(
+            model=embedding_model_name,
+            provider=Provider.OLLAMA_LOCAL
+        )
         self.embedding_model = embedding_model_config.get_embedding()
         self.supabase_client: Client = create_client(
             supabase_url,
-            supabase_api_key,
+            supabase_api_key
         )
+
 
     def retrieve_relevant_chunks(
         self,
         query: str,
-        match_count: int = 10,
-        source_filter: str = None,
-        threshold: float = 0.10
+        source_filter: str = None
     ) -> list[dict]:
         """
         Retrieve relevant chunks from Supabase using semantic search.
 
         Args:
             query: Search query string
-            match_count: Maximum number of chunks to return (default: 5)
             source_filter: Optional filter by source name
                 (e.g., 'langchain', 'docling')
-            threshold: Minimum similarity score to include (default: 0.35)
 
         Returns:
             List of dictionaries containing chunk content and metadata.
@@ -65,23 +66,9 @@ class Retriever:
 
         params = {
             'query_embedding': query_embedding,
-            'match_count': match_count,
             'source_filter': source_filter
         }
 
         result = self.supabase_client.rpc('match_chunks', params).execute()
 
-        if result.data:
-            # Filter by similarity threshold
-            out = [
-                chunk for chunk in result.data
-                if chunk.get('similarity', 0) >= threshold
-            ]
-            if not out:
-                logger.info(
-                    f"No chunks found above similarity threshold {threshold}")
-        else:
-            logger.info("No chunks found for query")
-            out = []
-
-        return out
+        return result.data if result.data else []

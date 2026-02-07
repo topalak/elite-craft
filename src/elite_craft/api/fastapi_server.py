@@ -5,28 +5,27 @@ This is the backend HTTP server that:
 - Exposes REST endpoints for the Crafter agent
 - Handles requests from Streamlit frontend
 - Returns JSON responses
-- Runs on port 8000
+- Runs on a port you decide
 """
 import logging
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from elite_craft.agent.crafter_agent import Crafter
-from elite_craft.services.update_db_pipeline import UpdateDBPipeline
 from elite_craft.api.schemas import (
     QuestionRequest,
     QuestionResponse,
-    UpdateDBRequest,
-    UpdateDBResponse,
 )
+from elite_craft.enums import Provider
 
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(settings.LOGGING_LEVEL)
 
+#todo fix the python path problem
 # Create FastAPI app
 app = FastAPI(
     title="Elite Craft API",
@@ -35,9 +34,11 @@ app = FastAPI(
 )
 
 # Add CORS middleware (allows Streamlit to call this API)
+# SECURITY: ALLOWED_ORIGINS should be restricted to your Streamlit domain in production
+# Set DEBUG=false and configure ALLOWED_ORIGINS in .env for production deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to your Streamlit domain
+    allow_origins=settings.ALLOWED_ORIGINS if not settings.DEBUG else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,23 +47,16 @@ app.add_middleware(
 # Initialize Crafter agent ONCE when server starts (not per request!)
 crafter = Crafter(
     llm_model=settings.LLM_NAME,
-    llm_api_key=settings.OLLAMA_API_KEY,
-    embedding_model_name=settings.EMBEDDING_MODEL,
-    supabase_url=settings.SUPABASE_URL,
-    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY
+    llm_api_key=settings.OLLAMA_API_KEY.get_secret_value(),
+    llm_provider=Provider(settings.LLM_PROVIDER),  # Convert string to enum
+    ollama_provider_url=settings.OLLAMA_HOST_COLAB.get_secret_value(),
+    supabase_url=settings.SUPABASE_URL.get_secret_value(),
+    supabase_api_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY.get_secret_value(),
+    embedding_model=settings.EMBEDDING_MODEL,
+    tavily_api_key=settings.TAVILY_API_KEY.get_secret_value(),
 )
 
 logger.info("✅ Crafter agent initialized")
-
-# Initialize UpdateDBPipeline
-pipeline = UpdateDBPipeline(
-    embedding_model=settings.EMBEDDING_MODEL,
-    supabase_url=settings.SUPABASE_URL,
-    supabase_key=settings.SUPABASE_SERVICE_ROLE_SECRET_KEY,
-    chunk_size=settings.CHUNK_SIZE
-)
-
-logger.info("✅ UpdateDBPipeline initialized")
 
 
 # ============================================
@@ -90,75 +84,43 @@ async def ask_question(request: QuestionRequest) -> QuestionResponse:
     Raises:
         HTTPException: If agent processing fails
     """
-    try:
-        logger.info(f"Received question: {request.query[:25]}...")
-
-        # Call Crafter agent
-        # print_to_cli=False to avoid console output in API
-        result = crafter.ask(request.query, print_to_cli=False)
-
-        logger.info(
-            f"Successfully processed question, "
-            f"returned {len(result['chunks'])} chunks"
+    # Input validation
+    if not request.query or not request.query.strip():
+        logger.warning("Empty query received")
+        raise HTTPException(
+            status_code=400,
+            detail="Query cannot be empty"
         )
 
-        return QuestionResponse(
-            answer=result["answer"],
-            retrieved_chunks=result["chunks"]
+    try:
+        # Call Crafter agent using the ask method
+        answer = crafter.ask(query=request.query, print_to_cli=False)
+
+        return QuestionResponse(answer=answer)
+
+    except TimeoutError as e:
+        logger.error(f"LLM request timeout: {e}")
+        raise HTTPException(
+            status_code=504,  # Gateway Timeout
+            detail="AI service request timed out. Please try again."
+        )
+
+    except ConnectionError as e:
+        logger.error(f"LLM connection failed: {e}")
+        raise HTTPException(
+            status_code=503,  # Service Unavailable
+            detail="Cannot reach AI service. Please try again later."
         )
 
     except Exception as e:
-        logger.error(f"Error processing question: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process question: {str(e)}"
-        )
-
-
-@app.post("/api/update-db", response_model=UpdateDBResponse)
-async def update_database(
-    request: UpdateDBRequest,
-    background_tasks: BackgroundTasks
-) -> UpdateDBResponse:
-    """
-    Trigger database update with new documentation URLs.
-
-    This endpoint crawls the provided URLs, chunks the content,
-    generates embeddings, and stores them in Supabase.
-    The process runs in the background to avoid blocking the request.
-
-    Args:
-        request: Contains list of URLs to process
-        background_tasks: FastAPI background task manager
-
-    Returns:
-        Status message indicating the update has started
-
-    Example:
-        POST http://localhost:8000/api/update-db
-        Body: {"urls": ["https://docs.langchain.com/..."]}
-    """
-    try:
-        logger.info(f"Database update requested for {len(request.urls)} URLs")
-
-        # Add task to background - doesn't block the response
-        background_tasks.add_task(
-            pipeline.process_multiple_urls,
-            request.urls
-        )
-
-        return UpdateDBResponse(
-            status="started",
-            message=f"Database update started for {len(request.urls)} URLs",
-            urls_count=len(request.urls)
-        )
-
-    except Exception as e:
-        logger.error(f"Error starting database update: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to start database update: {str(e)}"
-        )
+        # Unknown error - log with full context
+        logger.exception(f"Unexpected error in ask_question: {e}")
+        # In production, return generic error message
+        if settings.DEBUG:
+            detail = f"Error: {str(e)}"
+        else:
+            detail = "An internal error occurred. Please contact support if this persists."
+        raise HTTPException(status_code=500, detail=detail)
 
 
 # Entry point for running with uvicorn

@@ -18,19 +18,8 @@ class QuestionRequest(BaseModel):
     query: str = Field(
         ...,
         min_length=1,
-        #max_length=1000,
         description="User's question about agent development"
     )
-
-
-class RetrievedChunk(BaseModel):
-    """
-    Model for a single retrieved documentation chunk.
-    """
-    url: str = Field(description="Source URL of the documentation")
-    chunk_id_in_document: int = Field(description="Chunk position in document")
-    content: str = Field(description="Text content of the chunk")
-    similarity: float = Field(description="Similarity score (0-1)")
 
 
 class QuestionResponse(BaseModel):
@@ -40,9 +29,11 @@ class QuestionResponse(BaseModel):
     Returned by: POST /api/ask
     """
     answer: str = Field(description="LLM-generated answer based on retrieved docs")
-    retrieved_chunks: list[RetrievedChunk] = Field(
-        description="Documentation chunks used to generate answer"
+    retrieved_chunks: list[dict] = Field(
+        default=[],
+        description="Retrieved documentation chunks used to generate the answer"
     )
+
 
 class UpdateDBRequest(BaseModel):
     """

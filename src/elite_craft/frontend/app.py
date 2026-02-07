@@ -5,7 +5,7 @@ This is the user-facing web interface that:
 - Displays chat UI
 - Captures user questions
 - Makes HTTP requests to FastAPI backend
-- Displays answers and retrieved chunks
+- Displays answers
 """
 import logging
 import os
@@ -15,14 +15,15 @@ import streamlit as st
 from config import settings
 from elite_craft.api import EliteCraftClient
 
-os.environ['LANGSMITH_API_KEY'] = getattr(settings, 'LANGSMITH_API_KEY', '')
-os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'false')
+os.environ['LANGSMITH_TRACING'] = getattr(settings, 'LANGSMITH_TRACING', 'true')
+os.environ['LANGSMITH_ENDPOINT'] = getattr(settings, 'LANGSMITH_ENDPOINT', 'https://api.smith.langchain.com')
+os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY.get_secret_value()
+os.environ['LANGSMITH_PROJECT'] = getattr(settings, 'LANGSMITH_PROJECT', 'elite-craft')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 client = EliteCraftClient(host=settings.API_HOST, port=settings.API_PORT)
-
 
 # Page configuration
 st.set_page_config(
@@ -103,37 +104,49 @@ if "messages" not in st.session_state:
 # Display conversation history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
+        # Show chunk count if this message has chunks
+        if message.get("chunk_count"):
+            st.info(f"📊 Retrieved {message['chunk_count']} chunk{'s' if message['chunk_count'] != 1 else ''} for this query")
+
         st.markdown(message["content"])
 
-        # Display retrieved chunks if this was an assistant message
-        if message["role"] == "assistant" and "chunks" in message:
-            with st.expander("📚 Retrieved Documentation", expanded=False):
-                for idx, chunk in enumerate(message["chunks"], 1):
-                    st.markdown(f"### Chunk {idx}")
+        # Display chunks if available
+        if message.get("chunks"):
+            with st.expander(
+                f"📚 Retrieved Chunks ({len(message['chunks'])})",
+                expanded=False
+            ):
+                for i, chunk in enumerate(message['chunks'], 1):
+                    if isinstance(chunk, dict):
+                        # Display chunk header with similarity and source
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            source = chunk.get('source', 'unknown')
+                            chunk_num = chunk.get('chunk_number', '?')
+                            st.markdown(f"**Chunk {i}** - `{source}` (chunk #{chunk_num})")
+                        with col2:
+                            similarity = chunk.get('similarity', 0)
+                            st.metric("Similarity", f"{similarity:.3f}")
 
-                    # Display metadata
-                    col1, col2 = st.columns([2, 1])
-                    with col1:
-                        st.markdown(
-                            f"**Source:** [{chunk['url']}]({chunk['url']})"
-                        )
-                    with col2:
-                        similarity_pct = chunk['similarity'] * 100
-                        st.markdown(
-                            f"**Similarity:** "
-                            f":green[{similarity_pct:.1f}%]"
-                        )
+                        # Display URL
+                        if 'url' in chunk:
+                            st.caption(f"🔗 [{chunk['url']}]({chunk['url']})")
 
-                    st.markdown(
-                        f"**Chunk ID:** {chunk['chunk_id_in_document']}"
-                    )
+                        # Display content
+                        content = chunk.get('content', '')
+                        if content:
+                            st.markdown(content)
 
-                    # Display full content
-                    st.markdown("**Content:**")
-                    st.code(chunk['content'], language="markdown")
+                        # Display crawled time if available
+                        if 'crawled_time' in chunk:
+                            st.caption(f"⏰ Crawled: {chunk['crawled_time']}")
 
-                    if idx < len(message["chunks"]):
-                        st.markdown("---")
+                    else:
+                        # Fallback for non-dict chunks
+                        st.markdown(f"**Chunk {i}**")
+                        st.markdown(str(chunk))
+
+                    st.markdown("---")
 
 # Chat input
 if query := st.chat_input("How do I build an agent?"):
@@ -153,53 +166,59 @@ if query := st.chat_input("How do I build an agent?"):
             try:
                 response = client.ask_question(query)
 
+                # Display chunk count indicator
+                chunk_count = len(response.retrieved_chunks) if response.retrieved_chunks else 0
+                if chunk_count > 0:
+                    st.info(f"📊 Retrieved {chunk_count} chunk{'s' if chunk_count != 1 else ''} for this query")
+
                 # Display answer
                 st.markdown(response.answer)
 
-                # Display retrieved chunks
-                with st.expander("📚 Retrieved Documentation", expanded=False):
-                    for idx, chunk in enumerate(
-                        response.retrieved_chunks, 1
+                # Display retrieved chunks for debugging
+                if response.retrieved_chunks:
+                    with st.expander(
+                        f"📚 Retrieved Chunks ({len(response.retrieved_chunks)})",
+                        expanded=False
                     ):
-                        st.markdown(f"### Chunk {idx}")
+                        for i, chunk in enumerate(response.retrieved_chunks, 1):
+                            if isinstance(chunk, dict):
+                                # Display chunk header with similarity and source
+                                col1, col2 = st.columns([3, 1])
+                                with col1:
+                                    source = chunk.get('source', 'unknown')
+                                    chunk_num = chunk.get('chunk_number', '?')
+                                    st.markdown(f"**Chunk {i}** - `{source}` (chunk #{chunk_num})")
+                                with col2:
+                                    similarity = chunk.get('similarity', 0)
+                                    st.metric("Similarity", f"{similarity:.3f}")
 
-                        # Display metadata
-                        col1, col2 = st.columns([2, 1])
-                        with col1:
-                            st.markdown(
-                                f"**Source:** [{chunk.url}]({chunk.url})"
-                            )
-                        with col2:
-                            similarity_pct = chunk.similarity * 100
-                            st.markdown(
-                                f"**Similarity:** "
-                                f":green[{similarity_pct:.1f}%]"
-                            )
+                                # Display URL
+                                if 'url' in chunk:
+                                    st.caption(f"🔗 [{chunk['url']}]({chunk['url']})")
 
-                        st.markdown(
-                            f"**Chunk ID:** {chunk.chunk_id_in_document}"
-                        )
+                                # Display content
+                                content = chunk.get('content', '')
+                                if content:
+                                    # Render as markdown to preserve code blocks
+                                    st.markdown(content)
 
-                        # Display full content
-                        st.markdown("**Content:**")
-                        st.code(chunk.content, language="markdown")
+                                # Display crawled time if available
+                                if 'crawled_time' in chunk:
+                                    st.caption(f"⏰ Crawled: {chunk['crawled_time']}")
 
-                        if idx < len(response.retrieved_chunks):
+                            else:
+                                # Fallback for non-dict chunks
+                                st.markdown(f"**Chunk {i}**")
+                                st.markdown(str(chunk))
+
                             st.markdown("---")
 
-                # Add to history
+                # Add to history with chunks
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": response.answer,
-                    "chunks": [
-                        {
-                            "url": chunk.url,
-                            "chunk_id_in_document": chunk.chunk_id_in_document,
-                            "content": chunk.content,
-                            "similarity": chunk.similarity
-                        }
-                        for chunk in response.retrieved_chunks
-                    ]
+                    "chunks": response.retrieved_chunks,
+                    "chunk_count": chunk_count
                 })
 
             except Exception as e:

@@ -1,7 +1,5 @@
--- 2) Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- 3) Create documents table in private schema
 CREATE TABLE documents (
     id serial primary key,          -- Auto-incrementing primary key
     url varchar not null unique,    -- identifier
@@ -10,7 +8,6 @@ CREATE TABLE documents (
     body_preview text
 );
 
--- 4) Create chunks table in private schema
 CREATE TABLE chunks (
     id serial primary key,          -- Auto-incrementing primary key
     document_id integer not null,
@@ -26,12 +23,10 @@ CREATE TABLE chunks (
 );
 
 
--- 6) Set timeouts
 ALTER ROLE authenticator SET statement_timeout = '2min';
 ALTER ROLE anon SET statement_timeout = '2min';
 ALTER ROLE authenticated SET statement_timeout = '2min';
 ALTER ROLE service_role SET statement_timeout = '5min';
 
--- Enable RLS (optional, service_role bypasses it anyway)
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chunks ENABLE ROW LEVEL SECURITY;

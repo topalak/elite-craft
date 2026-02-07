@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,13 +21,15 @@ class Settings(BaseSettings):
     and validation. Loads from .env file in parent directory.
 
     Attributes:
-        OLLAMA_API_KEY: API key for Ollama cloud service
-        GROQ_API_KEY: API key for Groq cloud service
-        SUPABASE_URL: Supabase project URL
-        SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key
-        SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key
-        LANGSMITH_API_KEY: LangSmith API key for tracing
+        OLLAMA_API_KEY: API key for Ollama cloud service (SecretStr)
+        GROQ_API_KEY: API key for Groq cloud service (SecretStr)
+        SUPABASE_URL: Supabase project URL (SecretStr)
+        SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key (SecretStr)
+        SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key (SecretStr)
         LANGSMITH_TRACING: Enable/disable LangSmith tracing
+        LANGSMITH_ENDPOINT: LangSmith API endpoint URL
+        LANGSMITH_API_KEY: LangSmith API key for tracing (SecretStr)
+        LANGSMITH_PROJECT: LangSmith project name
         EMBEDDING_MODEL: Name of embedding model (default: embeddinggemma)
         LLM_NAME: Name of LLM model (default: gpt-oss:20b-cloud)
         OUTPUT: Output directory path
@@ -39,16 +41,22 @@ class Settings(BaseSettings):
         API_HOST: API server host (default: localhost)
         API_PORT: API server port (default: 8000)
     """
-    OLLAMA_API_KEY: str = ""
-    GROQ_API_KEY: str = ""
-    SUPABASE_URL: str = ""
-    SUPABASE_SERVICE_ROLE_SECRET_KEY: str = ""
-    SUPABASE_ANON_PUBLIC_KEY: str = ""
-    LANGSMITH_API_KEY: str = ""
-    LANGSMITH_TRACING: str = "false"
+    OLLAMA_API_KEY: SecretStr = ""
+    OLLAMA_HOST_LOCAL: SecretStr = ""
+    OLLAMA_HOST_COLAB: SecretStr = ""
+    OLLAMA_COLAB_API_KEY: SecretStr = ""
+    GROQ_API_KEY: SecretStr = ""
+    SUPABASE_URL: SecretStr = ""
+    SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
+    SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
+    TAVILY_API_KEY: SecretStr = ""
 
-    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "gpt-oss:120b-cloud"
+    # Code executor proxy authentication
+    PROXY_SECRET: str = "dev-secret-12345"  
+    LANGSMITH_TRACING: str = "true"
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
+    LANGSMITH_API_KEY: SecretStr = ""
+    LANGSMITH_PROJECT: str = "elite-craft"
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(
@@ -56,11 +64,52 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    #LOGGING_LEVEL: int = logging.WARNING
+    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
+    LLM_NAME: str = "gpt-oss:120b-cloud"
+    LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq"
+
+    # API server configuration
+    # These variables must be set
+    API_HOST: str = "localhost"
+    API_PORT: int = 8000
+
+    # API timeout configuration (in seconds)
+    API_REQUEST_TIMEOUT: int = Field(
+        default=90,
+        description="Timeout for API requests to agent endpoints (ask_question)"
+    )
+    API_UPDATE_DB_TIMEOUT: int = Field(
+        default=100,
+        description="Timeout for database update endpoint requests"
+    )
+
+    # Security configuration
+    DEBUG: bool = Field(
+        default=False,
+        description="Enable debug mode - exposes detailed error messages (NEVER use in production!)"
+    )
+
+    # CORS configuration
+    ALLOWED_ORIGINS: list[str] = Field(
+        default=["http://localhost:8501", "http://localhost:8502"],
+        description="Allowed CORS origins. Use ['*'] only in development!"
+    )
+
+    USE_OLLAMA_LOCAL: bool = False
+
+    # Thread number for agent's memory
+    DEFAULT_THREAD_ID: str = "1"
+
     LOGGING_LEVEL: int = logging.INFO
+    #LOGGING_LEVEL: int = logging.WARNING
 
     # Database upload configuration
     DB_UPLOAD_BATCH_SIZE: int = 100
+
+    # Embedding batch size (chunks per API call)
+    # Lower values = more API calls but safer for large documents
+    # Higher values = fewer API calls but may exceed context limits
+    EMBEDDING_BATCH_SIZE: int = 20
 
     # Database "body_preview" column's preview size
     BODY_PREVIEW_END: int = 3000
@@ -69,19 +118,21 @@ class Settings(BaseSettings):
     # This value affects knowledge base quality. Test retrieval before production.
     CHUNK_SIZE: int = Field(
         default=1000,
-        ge=100,
-        le=8000,
-        description=(
-            "Maximum chunk size in characters for document ingestion. "
-            "Affects entire knowledge base - changing requires full re-ingestion. "
-            "Recommended: 500-1000 for code snippets, 1500-2000 for tutorials. "
-            "Test retrieval quality before committing to a value."
-        )
+        description="Default chunk size in characters. "
+
     )
 
-    # API server configuration
-    API_HOST: str = "localhost"
-    API_PORT: int = 8000
+    MINIMUM_CHUNK_SIZE: int = Field(
+        default=500,
+        description="Minimum chunk size in characters. "
+    )
+
+    CHUNK_OVERLAP: int = Field(
+    default=200,
+        description=(
+            "Overlap value for each chunk. "
+        )
+    )
 
     model_config = SettingsConfigDict(
         extra="ignore",

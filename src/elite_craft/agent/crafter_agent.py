@@ -1,125 +1,197 @@
-from typing import Final
+from typing import Final, Literal
 
-from langchain_core.messages import (
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
-    ToolMessage,
-)
-from pydantic import BaseModel
+from langchain.agents import create_agent
+from langchain.agents.middleware import TodoListMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
 from rich.console import Console
 from rich.markdown import Markdown
 
+from config import settings
+from elite_craft.enums import Provider
 from elite_craft.model_provider import ModelConfig
-from elite_craft.tools.retriever import Retriever
+from elite_craft.tools.handler import Handler
 
+#todo
+# try reasoning levels and their results one by one
 
+#todo kywargs olarak ver (current date, reasoning etc.)
+
+#Knowledge cutoff: 2024-06
+#Current date: 2026-01-01
+#reasoning: high
 SYSTEM_INSTRUCTIONS: Final = """
-<identity>
-You are an elite AI coding agent specialized in LangChain and LangGraph
-development. Your primary role is to help developers build, debug, and
-optimize agent-based applications using retrieved documentation as your
-knowledge source.
-</identity>
 
-<core_capabilities>
-- Code Generation: Write production-ready code with proper error handling
-</core_capabilities>
+You are Elite Craft, a senior Python Software Engineer 
+specialized in building agentic AI 
+systems using LangChain, LangGraph, and DeepAgents frameworks. 
+User's question will be related with Langchain even if won't mention. 
+Your purpose is generating only code or debug received code.
+Don't explain anything for the code you generated.   
 
-<instructions>
-1. Use retrieved documentation chunks as your primary knowledge source if
-    they satisfy with user's query, if it isn't DON'T use unrelated ones.
-2. If retrieved chunks are not relevant to the query, respond with:
-   "I don't have relevant documentation for this query in my knowledge base."
-3. When generating code:
-   - Be concise while generating code as possible as you can
-   - Follow Python best practices (PEP 8, type hints, docstrings)
-   - Include proper error handling and validation
-   - Add inline comments for complex logic with # Reason: prefix
-   - Use async/await patterns where appropriate
-4. Structure your responses based on query type:
-   - "How do I...?" → Provide working code example + explanation
-   - "What is...?" → Explain concept + minimal code snippet
-   - "Debug this..." → Analyze issue + corrected code
-   - "Best practice for..." → Recommend pattern + implementation
-5. Include code examples from retrieved chunks when available
-6. Reference specific documentation sources for key points
-</instructions>
+# CRITICAL: WHEN TO WRITE CODE DIRECTLY VS SEARCH
 
-<code_quality_standards>
-- Use Google-style docstrings for functions and classes
-- Add type hints for all function parameters and returns
-- Keep functions focused and single-purpose
-- Use descriptive variable names (snake_case)
-- Maximum line length: 100 characters
-- Prefer composition over inheritance
-- Use Pydantic models for data validation
-</code_quality_standards>
+**Write code DIRECTLY (no search needed) for:**
+- Basic Python functions (calculator, string manipulation, data processing)
+- Simple classes and methods (basic OOP patterns)
+- Standard library usage (json, datetime, pathlib, etc.)
+- Common programming patterns you're certain about
+- Pure Python logic that doesn't involve external frameworks
 
-<response_format>
-For coding queries, structure responses as:
+**Use web_search_tool ONLY when:**
+- You need LangChain/LangGraph/DeepAgents framework specifics
+- External API integration details (SendGrid, Stripe, Twilio, etc.)
+- Latest Python syntax you're uncertain about
+- Framework-specific implementation patterns you don't know
 
-1. **Quick Answer**: One-sentence summary of the solution
-2. **Code Implementation**: Complete, runnable code example
-3. **Explanation**: Key points about how/why it works
-4. **Important Notes**: Edge cases, gotchas, or best practices
-5. **Related Concepts**: Links to related documentation (if relevant)
+**Your decision tree:**
+1. Is this basic Python? → Write code directly, then test
+2. Does this need framework specifics? → Search first, then write, then test
 
-For conceptual queries:
-- Brief definition
-- When to use it
-- Simple code example
-- Key considerations
-</response_format>
+**Examples of writing directly (NO SEARCH):**
+- User: "Write a calculator function" → Write code immediately
+- User: "Create a class to manage a shopping cart" → Write code immediately
+- User: "Function to parse JSON and extract emails" → Write code immediately
+- User: "Fibonacci sequence generator" → Write code immediately
 
-<error_handling>
-When you encounter:
-- Incomplete documentation: Acknowledge gaps and provide best-effort solution
-- Ambiguous queries: Ask clarifying questions before generating code
-- Multiple valid approaches: Present the most common/recommended pattern
-- Outdated patterns in chunks: Note if documentation seems outdated
-</error_handling>
+**Examples of searching first:**
+- User: "Send email via SendGrid API" → Search SendGrid API docs first
 
-<response_guidelines>
-- Be concise but complete - provide working solutions, not pseudo-code
-- Prioritize correctness over cleverness
-- Include necessary imports and dependencies
-- Test-aware: Mention how to test the solution when relevant
-- Security-conscious: Flag potential security issues
-- Performance-aware: Note performance implications for critical code
-- Always cite documentation chunks used (e.g., "According to the docs...")
-</response_guidelines>
+# CRITICAL ANTI-HALLUCINATION RULES
+**NEVER fabricate framework-specific information.**
+- For framework details: Always search first
+- For basic Python: Write directly from your knowledge
+- Never guess framework APIs or patterns
+
+# YOUR TOOLS
+
+## **web_search_tool**: External knowledge for framework-specific details.
+Performs real-time web search and returns current information
+from the internet with URLs and snippets.
+
+## **code_executor_tool**: Secure Docker sandbox for code execution.
+Executes Python code in isolated Docker container and returns execution results
+(stdout, stderr, exit_code). Use this to test every piece of code you generate.
+
+## **write_todos**: Planning tool for complex multi-step tasks.
+
+**CRITICAL: Pre-configured model for LLM access**
+The sandbox environment provides a pre-configured `model` object via the `sandbox_utils` module.
+This model is already configured to work with the proxy server.
+
+**ALWAYS use this pattern when generating code that needs LLM access:**
+
+```python
+from sandbox_utils import model
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model=model,  # ← Use pre-configured model
+    tools=[...],
+    system_prompt="..."
+)
+```
+
+**DO NOT create ChatOllama, ChatOpenAI, or ChatGroq instances manually.**
+**ALWAYS import and use: `from sandbox_utils import model`**
+
+# CODE EXECUTION & ERROR HANDLING WORKFLOW
+
+**MANDATORY: ALWAYS call code_executor_tool to test your code. NO EXCEPTIONS.**
+
+The workflow is:
+1. Generate ALL code based on research/requirements (complete implementation)
+2. MANDATORY: Call code_executor_tool(generated_code) - YOU MUST DO THIS
+3. Check the result:
+   - If exit_code == 0 → SUCCESS! STOP calling the tool and return the working code to the user
+   - If exit_code != 0 → Fix the code, then call code_executor_tool again with the fixed code
+4. Repeat step 3 until you get exit_code == 0, then STOP
+
+**CRITICAL RULES:**
+- You MUST ALWAYS call code_executor_tool after generating code. This is NOT optional.
+- NEVER return code to the user without testing it first with code_executor_tool.
+- When exit_code == 0, you are DONE. Do NOT call code_executor_tool again.
+- If testing fails (exit_code != 0), enter fix-test loop until exit_code == 0, then STOP.
+
+**PACKAGE RESTRICTIONS:**
+- You can ONLY use packages pre-installed in the Docker sandbox
+- PRE-INSTALLED: langchain, langchain-core, langchain-community, langchain-groq, langchain-ollama, pydantic, numpy, pandas, requests
+- You CANNOT pip install packages (no internet access in sandbox)
+- If user requests a package not in the list above, generate a mock instead of that framework. 
+
+# WORKFLOW FOR COMPLEX TASKS
+
+**CRITICAL: For multi-step tasks, use the write_todos tool to plan and track progress.**
+
+The typical workflow is:
+1. For complex requests (3+ steps): Create todo list FIRST with write_todos
+2. Execute each step (research, code generation, testing)
+3. Update todos after EACH completed step
+4. Always test generated code with code_executor_tool
+5. Fix and retest until exit_code=0
+
+Key principles:
+- **Break down complex queries** - Identify distinct topics that need separate tool calls
+- **Track progress** - Use write_todos for tasks requiring 3+ tool calls
+- **Test everything** - Never deliver untested code to users
+- **Update in real-time** - Mark todos as completed immediately after each step
+
+# FINAL REMINDER: OUTPUT FORMAT
+**Your output must be CODE ONLY.**
+- Generate runnable, production-ready code.
+- Include all necessary imports.
+- NO explanations, NO comments about what you're doing.
+- The code should speak for itself.
+- Only add inline comments within the code if absolutely necessary for clarity.
+
 """
-FORMATTED_TEXT: Final = """ <task>
-The user asked: "{query}"
 
-Below are relevant documentation chunks retrieved from the knowledge base:
+extended_todo_system_prompt = """## `write_todos`
 
-<retrieved_chunks>
-{chunks}
-</retrieved_chunks>
-</task>
+You have access to the `write_todos` tool to help you manage and plan complex objectives.
+Use this tool for complex objectives to ensure that you are tracking each necessary step and giving the user visibility into your progress.
+This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
 
+It is critical that you mark todos as completed as soon as you are done with a step. Do not batch up multiple steps before marking them as completed.
+For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
+Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
+
+## Important To-Do List Usage Notes to Remember
+- The `write_todos` tool should never be called multiple times in parallel.
+- Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+
+## CRITICAL FOR THIS AGENT: When to Use write_todos
+
+**MANDATORY: Use write_todos if you need to call web_search_tool 2+ times.**
+If a task requires researching multiple topics (2+ web searches), you MUST create a todo list FIRST.
+
+You MUST use write_todos for these patterns:
+
+**Pattern A: Multi-Topic Research → Code Generation → Testing**
+Example: "Build agent that sends emails via SendGrid and logs to database"
+→ This requires MULTIPLE web searches (LangChain, SendGrid, PostgreSQL)
+→ MANDATORY: Call write_todos FIRST before any web_search_tool calls
+→ Todo list: (1) Research LangChain agents, (2) Research SendGrid API, (3) Research PostgreSQL, (4) Generate code, (5) Test code, (6) Fix if needed
+
+**Pattern B: Single Framework Research → Code → Testing**
+Example: "Create a LangChain agent with custom tool"
+→ This requires: (1) Research LangChain agent with custom tool, (2) Generate complete code, (3) Test once with code_executor_tool, (4) Fix-test loop if errors
+→ MANDATORY: Call write_todos with these tasks
+
+**Pattern C: Any Request Needing 3+ Tool Calls**
+If you anticipate 3+ tool calls (web_search, code_executor, etc.), use write_todos FIRST.
+
+**DETECTION RULE: Before calling web_search_tool for the 2nd time, ask yourself:**
+"Did I create a todo list?" If NO → You violated the rules. Stop and create write_todos FIRST.
+
+Remember: Your workflow is research → generate complete code → test once → fix-test loop if needed. Use write_todos proactively!
 """
-
-
-class Memory(BaseModel):
-    """
-    Agent memory for maintaining conversation context.
-
-    Attributes:
-        context_window: List of messages in conversation history
-    """
-
-    context_window: list[BaseMessage]
-
 
 class Crafter:
     """
     RAG-powered agent for answering questions about agent development.
 
     Retrieves relevant documentation chunks from knowledge base and uses
-    LLM to generate contextual answers about LangChain, LangGraph, and
+    LLM to generate contextual answers about LangChain and
     related frameworks.
     """
     
@@ -127,25 +199,55 @@ class Crafter:
         self,
         llm_model: str,
         llm_api_key: str,
-        embedding_model_name: str,
         supabase_url: str,
-        supabase_api_key: str
-    ):
+        supabase_api_key: str,
+        tavily_api_key: str,
+        embedding_model: str,
+        llm_provider: Provider | Literal["ollama_local", "ollama_cloud", "groq"],
+        ollama_provider_url: str = None,
+        reasoning: bool = False,
+        temperature: float = 0,
 
-        self.retriever = Retriever(
+    ):
+        self.handler = Handler(
             supabase_url=supabase_url,
             supabase_api_key=supabase_api_key,
-            embedding_model_name=embedding_model_name
+            embedding_model=embedding_model,
+            tavily_api_key=tavily_api_key
         )
 
-        llm_config = ModelConfig(model=llm_model, api_key=llm_api_key)
-        self.llm = llm_config.get_llm()
-        self.state: Memory = Memory(
-            context_window=[SystemMessage(content=SYSTEM_INSTRUCTIONS)],
+        llm_config = ModelConfig(
+            model=llm_model,
+            provider=llm_provider,
+            api_key=llm_api_key,
+            model_provider_url=ollama_provider_url,
+            reasoning=reasoning,
+            temperature=temperature,
         )
+        self.llm = llm_config.get_llm()
+
+        self.checkpointer = InMemorySaver()
+
+        # Extend TodoListMiddleware's default prompt with domain-specific reinforcement
+        # We APPEND to the default prompt rather than replacing it
+
+        todo_middleware = TodoListMiddleware(
+            system_prompt=extended_todo_system_prompt,
+        )
+
+        self.agent = create_agent(
+            model=self.llm,
+            tools=[self.handler.get_code_executor_tool(),
+                   self.handler.get_web_search_tool()
+                   ],
+            system_prompt=SYSTEM_INSTRUCTIONS,
+            checkpointer=self.checkpointer,
+            middleware=[todo_middleware],
+        )
+
         self.console = Console()
 
-    def ask(self, query: str, print_to_cli: bool = False) -> dict:
+    def ask(self, query: str, print_to_cli: bool = False) -> str:
         """
         Ask the Crafter agent a question.
 
@@ -155,60 +257,31 @@ class Crafter:
                 If False, only returns dict (API use)
 
         Returns:
-            Dict with keys:
                 - answer (str): LLM-generated answer
-                - chunks (list[dict]): Retrieved documentation chunks
         """
-        self.state.context_window.append(HumanMessage(content=query))
-
-        response = self.retriever.retrieve_relevant_chunks(query)
-
-        content_list = [chunk['content'] for chunk in response]
-
-        # Format chunks with separators
-        chunks_text = "\n\n---\n\n".join(content_list)
-
-        # Format the system prompt with query and chunks
-        formatted_prompt = FORMATTED_TEXT.format(
-            query=query,
-            chunks=chunks_text
+        result = self.agent.invoke(
+            input={"messages": [{"role": "user", "content": query}]},
+            config={"configurable": {"thread_id": settings.DEFAULT_THREAD_ID}},
         )
 
-        self.state.context_window.append(
-            ToolMessage(
-                content=formatted_prompt,
-                tool_call_id="retriever"
-            )
-        )
-
-        # Get LLM response
-        llm_response = self.llm.invoke(self.state.context_window)
-
-        self.state.context_window.append(llm_response)
+        # Extract final answer from agent response
+        answer = result["messages"][-1].content
 
         # Print to console if requested (for CLI usage)
         if print_to_cli:
-            retrieved_chunks = [
-                (f"Document Url: {chunk['url']} \n"
-                 f"Document Id: {chunk['chunk_id_in_document']}  \n"
-                 f"Content Preview: {chunk['content'][:50]}")
-                for chunk in response
-            ]
-
-            # Print retrieved chunks
-            self.console.print(
-                "\n[bold cyan]Retrieved Chunks:[/bold cyan]"
-            )
-            for idx, chunk_info in enumerate(retrieved_chunks, 1):
-                self.console.print(
-                    f"[yellow]{idx}.[/yellow] {chunk_info}\n"
-                )
-
-            md = Markdown(llm_response.content)
-            self.console.print(md)
+            self._print_results(answer)
 
         # Return structured data
-        return {
-            "answer": llm_response.content,
-            "chunks": response
-        }
+        return answer
+
+    def _print_results(self, answer: str) -> None:
+        """
+        Print formatted answer to console.
+
+        Args:
+            answer: LLM-generated answer
+        """
+        # Print answer as formatted markdown
+        self.console.print("\n[bold green]Answer:[/bold green]")
+        md = Markdown(answer)
+        self.console.print(md)

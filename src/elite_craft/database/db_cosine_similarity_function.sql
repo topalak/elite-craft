@@ -1,7 +1,7 @@
 --Create match_chunks function
 CREATE OR REPLACE FUNCTION match_chunks (
     query_embedding vector(768),
-    match_count int DEFAULT 20,    -- todo re-rank
+    match_count int DEFAULT 20,
     source_filter varchar DEFAULT NULL
 ) RETURNS TABLE (
     chunk_id integer,

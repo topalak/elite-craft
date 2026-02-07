@@ -1,7 +1,11 @@
+from typing import Literal
+
 from ai_common.llm import _check_and_pull_ollama_model
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from ollama import Client
+
+from elite_craft.enums import Provider
 
 
 class ModelConfig:
@@ -9,41 +13,48 @@ class ModelConfig:
     Configuration for LLM and embedding model providers.
 
     Supports multiple providers:
-    - Local Ollama (use_ollama_local=True)
-    - Ollama Cloud (default, requires api_key)
-    - Groq Cloud (use_groq=True, requires api_key)
+    - Local Ollama (provider="ollama_local", requires model_provider_url)
+    - Ollama Cloud (provider="ollama_cloud", requires api_key)
+    - Groq Cloud (provider="groq", requires api_key)
 
-    Attributes:
-        model: Model name (e.g., 'gpt-oss:20b-cloud', 'embeddinggemma')
+    Args:
+        model: Model name (e.g., 'llama2', 'mixtral-8x7b-32768')
+        provider: Which provider to use (must be explicitly provided)
+        api_key: API key for cloud providers (required for groq/ollama_cloud)
         num_ctx: Context window size for Ollama models
-        model_provider_url: Custom provider URL (defaults vary by provider)
+        model_provider_url: Custom provider URL (for ollama_local)
         reasoning: Enable reasoning mode for supported models
         temperature: Sampling temperature (0 = deterministic)
-        use_ollama_local: Use local Ollama instance
-        api_key: API key for cloud providers
-        use_groq: Use Groq cloud provider
     """
 
     def __init__(
         self,
         model: str,
-        num_ctx: int = None,
-        model_provider_url: str = None,
+        provider: Provider | Literal["ollama_local", "ollama_cloud", "groq"],
+        api_key: str | None = None,
+        num_ctx: int | None = None,
+        model_provider_url: str | None = None,
         reasoning: bool = False,
-        temperature: int = 0,
-        use_ollama_local: bool = False,
-        api_key: str = None,
-        use_groq: bool = None,
+        temperature: float = 0,
     ):
-
         self.model = model
-        self.model_provider_url = model_provider_url
+        self.provider = Provider(provider)  # Ensures valid provider
+        self.api_key = api_key
         self.num_ctx = num_ctx
+        self.model_provider_url = model_provider_url
         self.reasoning = reasoning
         self.temperature = temperature
-        self.use_ollama_local = use_ollama_local
-        self.api_key = api_key
-        self.use_groq = use_groq
+
+        # Validate required parameters for each provider
+        self._validate_config()
+
+    def _validate_config(self):
+        """Fail fast: Validate configuration on initialization."""
+        if self.provider == Provider.GROQ and not self.api_key:
+            raise ValueError("api_key is required when using Groq provider")
+
+        if self.provider == Provider.OLLAMA_CLOUD and not self.api_key:
+            raise ValueError("api_key is required when using Ollama Cloud")
 
 
     def get_llm(self):
@@ -54,9 +65,9 @@ class ModelConfig:
             ChatOllama or ChatGroq instance based on configuration
 
         Raises:
-            Exception: If model pulling or initialization fails
+            ValueError: If provider configuration is invalid
         """
-        if self.use_ollama_local:
+        if self.provider == Provider.OLLAMA_LOCAL:
             # Use local Ollama
             _check_and_pull_ollama_model(
                 model_name=self.model,
@@ -75,14 +86,15 @@ class ModelConfig:
                 keep_alive="5m",
             )
 
-        elif self.use_groq:
+        elif self.provider == Provider.GROQ:
             # Use Groq Cloud
             return ChatGroq(
                 model=self.model,
                 api_key=self.api_key,
                 temperature=self.temperature,
             )
-        else:
+
+        elif self.provider == Provider.OLLAMA_CLOUD:
             # Use Ollama Cloud
             return ChatOllama(
                 model=self.model,
@@ -90,11 +102,12 @@ class ModelConfig:
                 client_kwargs={
                     'headers': {'Authorization': f'Bearer {self.api_key}'}
                 },
-                num_ctx=self.num_ctx,
-                reasoning=self.reasoning,
                 temperature=self.temperature,
-                keep_alive="5m",
             )
+
+        else:
+            # This shouldn't happen due to enum validation, but be defensive
+            raise ValueError(f"Unknown provider: {self.provider}")
 
     def get_embedding(self):
         """
@@ -108,11 +121,3 @@ class ModelConfig:
             model=self.model,
             base_url=self.model_provider_url,
         )
-
-def main() -> None:
-    """Entry point for testing model provider functionality."""
-    print('main')
-
-
-if __name__ == '__main__':  # pragma: no cover
-    main()
