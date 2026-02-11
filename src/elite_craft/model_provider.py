@@ -3,6 +3,7 @@ from typing import Literal
 from ai_common.llm import _check_and_pull_ollama_model
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_openai import ChatOpenAI
 from ollama import Client
 
 from elite_craft.enums import Provider
@@ -56,6 +57,9 @@ class ModelConfig:
         if self.provider == Provider.OLLAMA_CLOUD and not self.api_key:
             raise ValueError("api_key is required when using Ollama Cloud")
 
+        if self.provider == Provider.OPENAI and not self.api_key:
+            raise ValueError("api_key is required when using OpenAI")
+
 
     def get_llm(self):
         """
@@ -67,47 +71,54 @@ class ModelConfig:
         Raises:
             ValueError: If provider configuration is invalid
         """
-        if self.provider == Provider.OLLAMA_LOCAL:
-            # Use local Ollama
-            _check_and_pull_ollama_model(
-                model_name=self.model,
-                ollama_url=self.model_provider_url
-            )
-            ollama_client = Client(host=self.model_provider_url)
-            ollama_client.generate(model=self.model)
+        match self.provider:
+            case Provider.OLLAMA_LOCAL:
+                # Use local Ollama
+                _check_and_pull_ollama_model(
+                    model_name=self.model,
+                    ollama_url=self.model_provider_url
+                )
+                ollama_client = Client(host=self.model_provider_url)
+                ollama_client.generate(model=self.model)
 
-            # Wrap the model in LangChain interface
-            return ChatOllama(
-                model=self.model,
-                base_url=self.model_provider_url,
-                num_ctx=self.num_ctx,
-                reasoning=self.reasoning,
-                temperature=self.temperature,
-                keep_alive="5m",
-            )
+                # Wrap the model in LangChain interface
+                return ChatOllama(
+                    model=self.model,
+                    base_url=self.model_provider_url,
+                    num_ctx=self.num_ctx,
+                    reasoning=self.reasoning,
+                    temperature=self.temperature,
+                    keep_alive="5m",
+                )
 
-        elif self.provider == Provider.GROQ:
-            # Use Groq Cloud
-            return ChatGroq(
-                model=self.model,
-                api_key=self.api_key,
-                temperature=self.temperature,
-            )
+            case Provider.GROQ:
+                # Use Groq Cloud
+                return ChatGroq(
+                    model=self.model,
+                    api_key=self.api_key,
+                    temperature=self.temperature,
+                )
 
-        elif self.provider == Provider.OLLAMA_CLOUD:
-            # Use Ollama Cloud
-            return ChatOllama(
-                model=self.model,
-                base_url="https://ollama.com",
-                client_kwargs={
-                    'headers': {'Authorization': f'Bearer {self.api_key}'}
-                },
-                temperature=self.temperature,
-            )
+            case Provider.OLLAMA_CLOUD:
+                # Use Ollama Cloud
+                return ChatOllama(
+                    model=self.model,
+                    base_url="https://ollama.com",
+                    client_kwargs={
+                        'headers': {'Authorization': f'Bearer {self.api_key}'}
+                    },
+                    temperature=self.temperature,
+                )
 
-        else:
-            # This shouldn't happen due to enum validation, but be defensive
-            raise ValueError(f"Unknown provider: {self.provider}")
+            case Provider.OPENAI:
+                return ChatOpenAI(
+                    model=self.model,
+                    temperature=self.temperature,
+                )
+
+            case _:
+                # This shouldn't happen due to enum validation, but be defensive
+                raise ValueError(f"Unknown provider: {self.provider}")
 
     def get_embedding(self):
         """

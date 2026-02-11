@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     OLLAMA_HOST_COLAB: SecretStr = ""
     OLLAMA_COLAB_API_KEY: SecretStr = ""
     GROQ_API_KEY: SecretStr = ""
+    OPENAI_API_KEY: SecretStr = ""
     SUPABASE_URL: SecretStr = ""
     SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
     SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
@@ -65,8 +66,10 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "gpt-oss:120b-cloud"
-    LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq"
+    LLM_NAME: str = "gpt-5-mini"
+    #"gpt-oss:120b-cloud"
+    LLM_PROVIDER: str = "openai"  # Options: "ollama_cloud", "ollama_local", "groq"
+    #"ollama_cloud"
 
     # API server configuration
     # These variables must be set

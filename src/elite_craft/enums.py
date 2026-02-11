@@ -32,3 +32,4 @@ class Provider(StrEnum):
     OLLAMA_LOCAL = "ollama_local"
     OLLAMA_CLOUD = "ollama_cloud"
     GROQ = "groq"
+    OPENAI = "openai"

@@ -80,7 +80,7 @@ class Handler:
             source URLs, and relevance metadata.
 
             Args:
-                query: Web search query using relevant keywords for best results.
+                query: Search query - be concise and human-like. Think broadly, not just keywords.
 
             Returns:
                 Dictionary with search results including URLs, content snippets, and metadata.
