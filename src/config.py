@@ -66,10 +66,12 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "gpt-5-mini"
+    LLM_NAME: str = "qwen3-coder:480b-cloud"
+    #"gpt-5-mini"
+    #"gpt-5.2"
     #"gpt-oss:120b-cloud"
-    LLM_PROVIDER: str = "openai"  # Options: "ollama_cloud", "ollama_local", "groq"
-    #"ollama_cloud"
+    #"qwen3-coder:480b-cloud"
+    LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq", "openai"
 
     # API server configuration
     # These variables must be set
@@ -78,7 +80,7 @@ class Settings(BaseSettings):
 
     # API timeout configuration (in seconds)
     API_REQUEST_TIMEOUT: int = Field(
-        default=90,
+        default=300,
         description="Timeout for API requests to agent endpoints (ask_question)"
     )
     API_UPDATE_DB_TIMEOUT: int = Field(
