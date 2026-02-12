@@ -341,6 +341,23 @@ class Chunker:
                 return previous_chunk_text
 
     @staticmethod
+    def _strip_code_blocks(text: str) -> str:
+        """
+        Remove code blocks from text for embedding purposes.
+
+        Removes content between Copy\n``` and closing ```.
+        Keeps explanatory text for better semantic matching.
+
+        Args:
+            text: Chunk text potentially containing code blocks
+
+        Returns:
+            Text with code blocks removed
+        """
+        pattern = r'Copy\n```[^\n]*\n.*?```'
+        return re.sub(pattern, '', text, flags=re.DOTALL).strip()
+
+    @staticmethod
     def _append_the_explanation_over_code_example(chunks: list[str]) -> list[str]:
         """
         Post-process chunks to add context to code blocks that start chunks.
@@ -390,7 +407,7 @@ class Chunker:
 
         return enhanced_chunks
 
-    def chunk(self, content: str, url: str) -> list[str]:
+    def chunk(self, content: str, url: str) -> tuple[list[str], list[str]]:
         """
         Split content into semantically coherent chunks.
 
@@ -399,7 +416,9 @@ class Chunker:
             url: Source URL (for logging purposes)
 
         Returns:
-            List of text chunks as strings with complete code blocks
+            Tuple of (full_chunks, embedding_chunks):
+                - full_chunks: Complete chunks with code blocks for storage/retrieval
+                - embedding_chunks: Chunks without code blocks for embedding
 
         Raises:
             Exception: If text splitting fails
@@ -417,9 +436,9 @@ class Chunker:
         # Step 4: Add context to code blocks that start chunks
         final_chunks = self._append_the_explanation_over_code_example(extended_chunks)
 
+        # Step 5: Create embedding-only versions (without code)
+        embedding_chunks = [self._strip_code_blocks(chunk) for chunk in final_chunks]
+
         logger.info(f"[CHUNK COMPLETE] Generated {len(final_chunks)} chunks for {url}")
 
-        length_of_final_chunks = [len(chunk) for chunk in final_chunks]
-
-
-        return final_chunks
+        return final_chunks, embedding_chunks
