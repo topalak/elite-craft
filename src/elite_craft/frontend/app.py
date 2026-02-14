@@ -4,7 +4,7 @@ Streamlit frontend for Elite Craft agent.
 This is the user-facing web interface that:
 - Displays chat UI
 - Captures user questions
-- Makes HTTP requests to FastAPI backend
+- Makes HTTP requests to Django backend
 - Displays answers
 """
 import logging

@@ -37,5 +37,8 @@ out/
 # Environment Variables
 .env
 
+# Django
+db.sqlite3
+
 # Evalute folder
 evaluate/
