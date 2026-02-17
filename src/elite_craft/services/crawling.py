@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 
 from crawl4ai import AsyncWebCrawler
@@ -18,6 +19,45 @@ SOURCE_MAPPING = {
     "reference.langchain.com": "langchain",
     "docling-project.github.io": "docling",
 }
+
+
+def _clean_markdown(raw_markdown: str) -> str:
+    """
+    Strip navigation boilerplate from crawled markdown.
+
+    Removes:
+        - Top: everything before the first h1 heading (nav, sidebar, breadcrumbs)
+        - Bottom: everything from '* * *' separator onwards (footer, edit links, prev/next)
+
+    Args:
+        raw_markdown: Raw markdown from crawler
+
+    Returns:
+        Cleaned markdown containing only the page content
+    """
+    # Fix broken headers: merge "## \n[​](url#anchor)\nTitle" into "## Title"
+    # Crawled docs split headers across 3 lines with a zero-width-space anchor link
+    raw_markdown = re.sub(
+        r'^(#{1,6}) \n\[(?:\u200b)?\]\([^)]+\)\n(.+)$',
+        r'\1 \2',
+        raw_markdown,
+        flags=re.MULTILINE
+    )
+
+    # Strip top: find first h1 heading (# at start of line)
+    h1_match = re.search(r'^# ', raw_markdown, re.MULTILINE)
+    if h1_match:
+        cleaned = raw_markdown[h1_match.start():]
+    else:
+        logger.warning("[CLEAN] No h1 heading found, keeping full content")
+        cleaned = raw_markdown
+
+    # Strip bottom: remove everything from '* * *' separator onwards
+    separator_pos = cleaned.rfind("\n* * *\n")
+    if separator_pos != -1:
+        cleaned = cleaned[:separator_pos]
+
+    return cleaned.strip()
 
 
 def _extract_source(url: str) -> str:
@@ -68,9 +108,13 @@ async def crawl(url: str) -> CrawledData:
             config=run_config
         )
 
+        raw_markdown = str(response.markdown)
+        body_text = _clean_markdown(raw_markdown)
+
         logger.info(
             f"[CRAWL] Response received for: {url}, "
-            f"content length: {len(response.markdown)} chars"
+            f"raw length: {len(raw_markdown)} chars, "
+            f"cleaned length: {len(body_text)} chars"
         )
 
     # Extract source name from URL
@@ -84,7 +128,7 @@ async def crawl(url: str) -> CrawledData:
     crawled_time = datetime.now(tz=settings.TIME_ZONE).isoformat()
 
     return CrawledData(
-        body_text=response.markdown,
+        body_text=body_text,
         crawled_time=crawled_time,
         url=AnyUrl(url),
         source=source

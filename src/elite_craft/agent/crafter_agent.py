@@ -16,6 +16,8 @@ from elite_craft.tools.handler import Handler
 
 #todo kywargs olarak ver (current date, reasoning etc.)
 
+#todo add retriever tool explanation and how to use in system prompt
+
 #Knowledge cutoff: 2024-06
 #Current date: 2026-01-01
 #reasoning: high

@@ -67,26 +67,26 @@ class UpdateDBPipeline:
             # Step 3: Chunk the document
             # CPU-bound - run in thread to not block event loop
             logger.debug(f"[PIPELINE] Step 3/5: Chunking {url}")
-            chunks = await asyncio.to_thread(
+            complete_chunks, _ = await asyncio.to_thread(
                 self.chunker.chunk,
                 content=crawled_data.body_text,
                 url=url,
             )
-            logger.info(f"[PIPELINE] Generated {len(chunks)} chunks for {url}")
+            logger.info(f"[PIPELINE] Generated {len(complete_chunks)} chunks for {url}")
 
             # Step 4: Generate embeddings
             # GPU-bound - run in thread to not block event loop
             logger.debug(f"[PIPELINE] Step 4/5: Generating embeddings for {url}")
             embeddings = await asyncio.to_thread(
                 self.embedder.embed,
-                chunks=chunks,
+                chunks=complete_chunks,
                 url=url
             )
 
             # Step 5: Upload chunks with embeddings
             logger.debug(f"[PIPELINE] Step 5/5: Uploading chunks to database for {url}")
             upload_result = await self.uploader.insert_chunks(
-                chunks=chunks,
+                chunks=complete_chunks,
                 embeddings=embeddings,
                 document_id=document_id,
                 url=url
@@ -189,8 +189,8 @@ async def main():
         # "https://docs.langchain.com/oss/python/langchain/messages",
         # "https://docs.langchain.com/oss/python/langchain/tools",
         # "https://docs.langchain.com/oss/python/langchain/short-term-memory",
-        # "https://docs.langchain.com/oss/python/langchain/streaming",
-         "https://docs.langchain.com/oss/python/langchain/structured-output",
+         "https://docs.langchain.com/oss/python/langchain/streaming",
+      #   "https://docs.langchain.com/oss/python/langchain/structured-output",
     #     "https://docs.langchain.com/oss/python/langchain/middleware/overview",
     #     "https://docs.langchain.com/oss/python/langchain/middleware/built-in",
     #     "https://docs.langchain.com/oss/python/langchain/middleware/custom",
