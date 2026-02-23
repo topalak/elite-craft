@@ -53,8 +53,15 @@ class CodeExecutor:
                 volumes={
                     str(code_file): {'bind': '/tmp/code/exec.py', 'mode': 'ro'}
                 },
-                environment={"PROXY_SECRET": self.proxy_secret},
+                environment={
+                    "PROXY_SECRET": self.proxy_secret,
+                    "LANGSMITH_TRACING": settings.LANGSMITH_TRACING,
+                    "LANGSMITH_ENDPOINT": settings.LANGSMITH_ENDPOINT,
+                    "LANGSMITH_API_KEY": settings.LANGSMITH_API_KEY.get_secret_value(),
+                    "LANGSMITH_PROJECT": "container",
+                },
                 extra_hosts={'host.docker.internal': 'host-gateway'}, # Access to proxy
+                network_mode="bridge",  # Outbound internet access
                 user="sandbox",  # Non-root user
                 mem_limit="512m",
             )

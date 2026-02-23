@@ -6,7 +6,15 @@ from elite_craft.tools import WebSearch, CodeExecutor, Retriever
 class RetrieverSchema(BaseModel):
     """Schema for retriever tool input validation."""
 
-    query: str = Field(description="Use keywords related to query")
+    query: str = Field(
+        description=(
+            "3 to 5 word query. "
+            "Do NOT include third party libraries — pydantic, numpy, pandas, requests, etc. into this query."
+            "Examples: 'create agent with tools langchain', 'langgraph human-in-the-loop approval', 'langgraph conditional edges routing'."
+            "Do NOT include any other libraries/frameworks such as 'Pydantic data models'. or 'Pandas csv read' "
+        ),
+        max_length=50
+    )
 
 class WebSearchSchema(BaseModel):
     """Schema for web search tool input validation."""

@@ -66,11 +66,11 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "qwen3-coder:480b-cloud"
+    LLM_NAME: str = "kimi-k2.5"
     #"gpt-5-mini"
     #"gpt-5.2"
     #"gpt-oss:120b-cloud"
-    #"qwen3-coder:480b-cloud"
+    #"kimi-k2.5"
     LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq", "openai"
 
     # API server configuration
