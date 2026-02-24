@@ -103,8 +103,16 @@ agent = create_agent(
 
 The sandbox has internet access. For packages not in the pre-installed list:
 - Use `web_search_tool` to find the real SDK/API documentation and correct usage patterns BEFORE writing code
-- Install with `pip install --user <package>` at the top of the script
 - NEVER mock external APIs, SDKs, or services — always use the real library with real API calls
+- Include pip installs at the TOP of your generated code using subprocess — never as a separate code_executor_tool call:
+```python
+import subprocess, sys
+subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "some-package"])
+
+import some_package
+# rest of code...
+```
+- The container is ephemeral — each code_executor_tool call starts a fresh container. A separate pip install call will be lost before your code runs.
 
 # EXECUTION WORKFLOW — FOLLOW THIS EXACTLY
 

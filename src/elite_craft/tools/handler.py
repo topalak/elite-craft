@@ -126,18 +126,19 @@ class Handler:
             DO NOT call this tool multiple times during code generation.
             Generate first, test once at the end, then loop if needed.
 
-            SECURITY FEATURES:
-            - Isolated Docker container (no access to host system)
-            - Network disabled (no internet access)
-            - Memory limited to 512MB
-            - CPU limited to 50% of one core
-            - Automatic timeout and cleanup
+            IMPORTANT: The container is EPHEMERAL — it is destroyed after each call.
+            If you need to pip install a package, include it at the top of the code itself
+            using subprocess. NEVER call this tool separately just for pip install.
 
             PRE-INSTALLED PACKAGES:
             - langchain, langchain-core, langchain-groq, langchain-ollama
             - pydantic
             - numpy, pandas
             - requests
+
+            For any other package, install it at the top of your code:
+                import subprocess, sys
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "package-name"])
 
             Args:
                 code: Complete Python code to execute (string)

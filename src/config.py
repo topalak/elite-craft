@@ -4,7 +4,7 @@ import os
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from elite_craft.enums import Model
 
 # __file__ = current file
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     )
 
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
-    LLM_NAME: str = "kimi-k2.5"
+    LLM_NAME: str = Model.KIMI_K2_5
     #"gpt-5-mini"
     #"gpt-5.2"
     #"gpt-oss:120b-cloud"

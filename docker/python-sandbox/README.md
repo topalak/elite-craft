@@ -26,7 +26,7 @@ docker build -t elite-craft/python-sandbox:latest ./docker/python-sandbox
 
 ```bash
 echo 'print("Hello from sandbox")' > test.py
-docker run --rm -v $(pwd)/test.py:/tmp/code/exec.py elite-craft/python-sandbox:latest
+docker run --rm -v $(pwd)/test.py:/tmp/code/exec.py elite-craft/python_sandbox:latest
 ```
 
 ## Adding New Dependencies
