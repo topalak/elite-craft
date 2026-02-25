@@ -8,7 +8,7 @@ This module provides:
 """
 
 #from elite_craft.api.fastapi_server import app
-from elite_craft.api.fastapi_client import EliteCraftClient
+from elite_craft.api.client import EliteCraftClient
 
 
 __all__ = [

@@ -16,6 +16,9 @@ Example:
 """
 
 import os
+
+from config import settings
+
 from langchain_ollama import ChatOllama
 
 # Pre-configured model for sandbox LLM access
@@ -23,11 +26,18 @@ from langchain_ollama import ChatOllama
 # The model uses the proxy server for secure API access
 
 #todo we might need to add the trace pattern here
+_proxy_secret = os.environ.get("PROXY_SECRET")
+if not _proxy_secret:
+    raise RuntimeError(
+        "PROXY_SECRET environment variable is required for sandbox LLM access. "
+        "Ensure the code executor injects it when starting the container."
+    )
+
 model = ChatOllama(
-    model="gpt-oss:20b-cloud",
+    model=settings.SANDBOX_LLM_NAME,
     base_url="http://host.docker.internal:4000",
     client_kwargs={
-        'headers': {'Authorization': f'Bearer {os.environ.get("PROXY_SECRET", "")}'}
+        'headers': {'Authorization': f'Bearer {_proxy_secret}'}
     },
     temperature=0
 )

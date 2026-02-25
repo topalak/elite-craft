@@ -19,45 +19,21 @@ class Settings(BaseSettings):
 
     Uses Pydantic Settings for automatic environment variable loading
     and validation. Loads from .env file in parent directory.
-
-    Attributes:
-        OLLAMA_API_KEY: API key for Ollama cloud service (SecretStr)
-        GROQ_API_KEY: API key for Groq cloud service (SecretStr)
-        SUPABASE_URL: Supabase project URL (SecretStr)
-        SUPABASE_SERVICE_ROLE_SECRET_KEY: Supabase service role key (SecretStr)
-        SUPABASE_ANON_PUBLIC_KEY: Supabase anonymous public key (SecretStr)
-        LANGSMITH_TRACING: Enable/disable LangSmith tracing
-        LANGSMITH_ENDPOINT: LangSmith API endpoint URL
-        LANGSMITH_API_KEY: LangSmith API key for tracing (SecretStr)
-        LANGSMITH_PROJECT: LangSmith project name
-        EMBEDDING_MODEL: Name of embedding model (default: embeddinggemma)
-        LLM_NAME: Name of LLM model (default: gpt-oss:20b-cloud)
-        OUTPUT: Output directory path
-        TIME_ZONE: Timezone for timestamps (default: UTC+3)
-        LOGGING_LEVEL: Logging level (default: WARNING)
-        DB_UPLOAD_BATCH_SIZE: Batch size for database uploads
-        BODY_PREVIEW_END: Character limit for body preview column
-        CHUNK_SIZE: Max chunk size per chunk
-        API_HOST: API server host (default: localhost)
-        API_PORT: API server port (default: 8000)
     """
+    #OPTIONAL
     OLLAMA_API_KEY: SecretStr = ""
     OLLAMA_HOST_LOCAL: SecretStr = ""
     OLLAMA_HOST_COLAB: SecretStr = ""
     OLLAMA_COLAB_API_KEY: SecretStr = ""
     GROQ_API_KEY: SecretStr = ""
     OPENAI_API_KEY: SecretStr = ""
-    SUPABASE_URL: SecretStr = ""
-    SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr = ""
-    SUPABASE_ANON_PUBLIC_KEY: SecretStr = ""
-    TAVILY_API_KEY: SecretStr = ""
 
-    # Code executor proxy authentication
-    PROXY_SECRET: str = "dev-secret-12345"   #move it to .env as PROXY_SECRET
-    LANGSMITH_TRACING: str = "true"
-    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
-    LANGSMITH_API_KEY: SecretStr = ""
-    LANGSMITH_PROJECT: str = "elite-craft"
+    #REQUIRED, MUST BE SET IN .ENV
+    SUPABASE_URL: SecretStr
+    SUPABASE_SERVICE_ROLE_SECRET_KEY: SecretStr
+    SUPABASE_ANON_PUBLIC_KEY: SecretStr
+    TAVILY_API_KEY: SecretStr
+    PROXY_SECRET: SecretStr
 
     OUTPUT: str = os.path.join(ENV_FILE_DIR, 'out')
     TIME_ZONE: datetime.timezone = datetime.timezone(
@@ -65,40 +41,19 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    EMBEDDING_MODEL: str = Model.NOMIC
+    # AGENT'S LLM CONFIGURATION
     LLM_NAME: str = Model.KIMI_K2_5
-    #"gpt-5-mini"
-    #"gpt-5.2"
-    #"gpt-oss:120b-cloud"
-    #"kimi-k2.5"
-    LLM_PROVIDER: str = Provider.OLLAMA_CLOUD  # Options: "OLLAMA_CLOUD", "OLLAMA_LOCAL", "GROQ", "OPENAI"
+    LLM_PROVIDER: str = Provider.OLLAMA_CLOUD
 
-    # API server configuration
-    # These variables must be set
-    API_HOST: str = "localhost"
-    API_PORT: int = 8000
 
-    # API timeout configuration (in seconds)
-    API_REQUEST_TIMEOUT: int = Field(
-        default=300,
-        description="Timeout for API requests to agent endpoints (ask_question)"
-    )
-    API_UPDATE_DB_TIMEOUT: int = Field(
-        default=100,
-        description="Timeout for database update endpoint requests"
-    )
+
 
     # Security configuration
     DEBUG: bool = Field(
         default=False,
-        description="Enable debug mode - exposes detailed error messages (NEVER use in production!)"
+        description="Enable debug mode - exposes detailed error messages"
     )
 
-    # CORS configuration
-    ALLOWED_ORIGINS: list[str] = Field(
-        default=["http://localhost:8501", "http://localhost:8502"],
-        description="Allowed CORS origins. Use ['*'] only in development!"
-    )
 
     USE_OLLAMA_LOCAL: bool = False
 
@@ -108,42 +63,47 @@ class Settings(BaseSettings):
     LOGGING_LEVEL: int = logging.INFO
     #LOGGING_LEVEL: int = logging.WARNING
 
-    # Database upload configuration
+
+
+
+
+    # SANDBOX CONFIGURATION
+    SANDBOX_LLM_NAME: str = Model.GPT_OSS_20
+
+    # SERVICES CONFIGURATION
+    EMBEDDING_MODEL: str = Model.NOMIC
     DB_UPLOAD_BATCH_SIZE: int = 100
-
-    # Embedding batch size (chunks per API call)
-    # Lower values = more API calls but safer for large documents
-    # Higher values = fewer API calls but may exceed context limits
     EMBEDDING_BATCH_SIZE: int = 20
-
-    # Database "body_preview" column's preview size
     BODY_PREVIEW_END: int = 3000
+    CHUNK_SIZE: int = Field(default=1000,description="Default chunk size in characters.")
+    MINIMUM_CHUNK_SIZE: int = Field(default=500,description="Minimum chunk size in characters.")
+    CHUNK_OVERLAP: int = Field(default=200,description="Overlap value for each chunk.")
 
-    # WARNING: Changing CHUNK_SIZE requires re-ingesting ALL documents
-    # This value affects knowledge base quality. Test retrieval before production.
-    CHUNK_SIZE: int = Field(
-        default=1000,
-        description="Default chunk size in characters. "
+    # LANGSMITH CONFIGURATION
+    LANGSMITH_TRACING: str = "true"
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
+    LANGSMITH_API_KEY: SecretStr = ""
+    LANGSMITH_PROJECT: str = "elite-craft"
 
+    # API SERVER CONFIGURATION
+    # @2 variables must be set
+    API_HOST: str = "localhost"
+    API_PORT: int = 8000
+    API_REQUEST_TIMEOUT: int = Field(
+        default=300,
+        description="Timeout for API requests to agent endpoints (ask_question)")
+    API_UPDATE_DB_TIMEOUT: int = Field(
+        default=100,
+        description="Timeout for database update endpoint requests")
+    #todo update the cors for django
+    # CORS configuration
+    ALLOWED_ORIGINS: list[str] = Field(
+        default=["http://localhost:8501", "http://localhost:8502"],
+        description="Allowed CORS origins. Use ['*'] only in development!"
     )
 
-    MINIMUM_CHUNK_SIZE: int = Field(
-        default=500,
-        description="Minimum chunk size in characters. "
-    )
 
-    CHUNK_OVERLAP: int = Field(
-    default=200,
-        description=(
-            "Overlap value for each chunk. "
-        )
-    )
-
-    model_config = SettingsConfigDict(
-        extra="ignore",
-        env_file_encoding="utf-8",
-        env_file=os.path.join(ENV_FILE_DIR, '.env')
-    )
+    model_config = SettingsConfigDict(extra="ignore",env_file_encoding="utf-8",env_file=os.path.join(ENV_FILE_DIR, '.env'))
 
 
 settings = Settings()

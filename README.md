@@ -179,23 +179,24 @@ cp .env.example .env
 Create a `.env` file in the project root (use `.env.example` as template):
 
 ```env
-# Supabase Configuration
+# ── REQUIRED ── App will not start without these
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_SECRET_KEY=your-service-role-key
-
-# LangSmith Configuration (Optional - for tracing)
-LANGSMITH_API_KEY=your-api-key
-LANGSMITH_TRACING=false
-
-# LLM Provider API Keys
-OLLAMA_API_KEY=your-ollama-key
-GROQ_API_KEY=your-groq-key  # Optional: for Groq provider
-
-# Web Search
+SUPABASE_ANON_PUBLIC_KEY=your-anon-key
 TAVILY_API_KEY=your-tavily-key
 
-# Code Executor Proxy
-PROXY_SECRET=your-proxy-secret  # For sandbox LLM access
+# Shared secret between the sandbox container and the proxy server.
+# This is NOT a third-party API key — you define it yourself.
+PROXY_SECRET=your-proxy-secret
+
+# ── OPTIONAL ── Set only the provider you use (validated at runtime)
+OLLAMA_API_KEY=your-ollama-key       # Required when LLM_PROVIDER=ollama_cloud
+GROQ_API_KEY=your-groq-key           # Required when LLM_PROVIDER=groq
+OPENAI_API_KEY=your-openai-key       # Required when LLM_PROVIDER=openai
+
+# ── OPTIONAL ── LangSmith tracing
+LANGSMITH_API_KEY=your-api-key
+LANGSMITH_TRACING=false
 ```
 
 The configuration is managed through Pydantic Settings in `src/config.py` with the following defaults:

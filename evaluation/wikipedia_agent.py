@@ -1,15 +1,3 @@
-from evaluation.evaluator import Evaluator
-from src.elite_craft.model_provider import ModelConfig
-from elite_craft.enums import Model, Provider
-from config import settings
-
-config = ModelConfig(model='gpt-oss:20b-cloud', provider='ollama_cloud',api_key=settings.OLLAMA_API_KEY.get_secret_value())
-model = config.get_llm()
-
-
-
-evaluator = Evaluator(model= Model.GPT_OSS_120, provider= Provider.OLLAMA_CLOUD,api_key=settings.OLLAMA_API_KEY)
-
 #############################################################################
 
 from langchain_community.utilities import WikipediaAPIWrapper
@@ -33,7 +21,3 @@ result = agent.invoke({
     "messages": [{"role": "user", "content": query}]
 })
 evaluator.evaluate(task_type="Question Answering",query=query, response=result['messages'][-1].content, reference_answer=reference_answer)
-
-
-print(result["messages"][-1].content)
-

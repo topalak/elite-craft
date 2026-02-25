@@ -15,7 +15,7 @@ class CodeExecutor:
     def __init__(self):
         self.client = docker.from_env()
         self.image = "elite-craft/python-sandbox:latest"
-        self.proxy_secret = settings.PROXY_SECRET
+        self.proxy_secret = settings.PROXY_SECRET.get_secret_value()
 
     def execute(self, code: str, timeout: int = 30) -> dict:
         """

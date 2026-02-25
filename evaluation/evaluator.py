@@ -1,6 +1,10 @@
-from src.elite_craft.model_provider import ModelConfig
-from pydantic import SecretStr, BaseModel, Field
 from typing import Any, Dict, List, Optional
+
+from elite_craft.model_provider import ModelConfig
+from elite_craft.enums import Provider
+
+from pydantic import SecretStr, BaseModel, Field
+
 
 PROMPT = """
 You are an expert evaluator assessing the quality of an AI-generated response.
@@ -61,7 +65,7 @@ class EvaluationResult(BaseModel):
 
 class Evaluator:
 
-    def __init__(self, model:str, provider:str, api_key:SecretStr):
+    def __init__(self, model:str, provider:Provider, api_key:SecretStr):
         llm_config = ModelConfig(model=model,
                                  provider=provider,
                                  api_key=api_key.get_secret_value())

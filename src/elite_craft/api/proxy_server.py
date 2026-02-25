@@ -10,9 +10,19 @@ from config import settings
 app = FastAPI()
 
 # Load config
-PROXY_SECRET = settings.PROXY_SECRET
+PROXY_SECRET = settings.PROXY_SECRET.get_secret_value()
 LLM_PROVIDER = settings.LLM_PROVIDER
 LLM_MODEL = settings.LLM_NAME
+
+
+def _require_key(field_name: str) -> str:
+    """Get a secret value from settings, raising if empty."""
+    value = getattr(settings, field_name).get_secret_value()
+    if not value:
+        raise ValueError(
+            f"Provider '{LLM_PROVIDER}' requires {field_name} to be set in .env"
+        )
+    return value
 
 
 def _get_llm_client():
@@ -21,7 +31,7 @@ def _get_llm_client():
         from langchain_groq import ChatGroq
         return ChatGroq(
             model=LLM_MODEL,
-            api_key=settings.GROQ_API_KEY.get_secret_value(),
+            api_key=_require_key("GROQ_API_KEY"),
             temperature=0
         )
 
@@ -31,7 +41,7 @@ def _get_llm_client():
             model=LLM_MODEL,
             base_url="https://ollama.com",
             client_kwargs={
-                'headers': {'Authorization': f'Bearer {settings.OLLAMA_API_KEY.get_secret_value()}'}
+                'headers': {'Authorization': f'Bearer {_require_key("OLLAMA_API_KEY")}'}
             },
             temperature=0
         )
