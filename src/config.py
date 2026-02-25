@@ -4,7 +4,7 @@ import os
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from elite_craft.enums import Model
+from elite_craft.enums import Model, Provider
 
 # __file__ = current file
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: SecretStr = ""
 
     # Code executor proxy authentication
-    PROXY_SECRET: str = "dev-secret-12345"  
+    PROXY_SECRET: str = "dev-secret-12345"   #move it to .env as PROXY_SECRET
     LANGSMITH_TRACING: str = "true"
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: SecretStr = ""
@@ -65,13 +65,13 @@ class Settings(BaseSettings):
         name='UTC+3'
     )
 
-    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
+    EMBEDDING_MODEL: str = Model.NOMIC
     LLM_NAME: str = Model.KIMI_K2_5
     #"gpt-5-mini"
     #"gpt-5.2"
     #"gpt-oss:120b-cloud"
     #"kimi-k2.5"
-    LLM_PROVIDER: str = "ollama_cloud"  # Options: "ollama_cloud", "ollama_local", "groq", "openai"
+    LLM_PROVIDER: str = Provider.OLLAMA_CLOUD  # Options: "OLLAMA_CLOUD", "OLLAMA_LOCAL", "GROQ", "OPENAI"
 
     # API server configuration
     # These variables must be set

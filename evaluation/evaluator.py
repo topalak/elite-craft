@@ -1,5 +1,5 @@
 from src.elite_craft.model_provider import ModelConfig
-from pydantic import SecretStr, BaseModel, Field, field_validator
+from pydantic import SecretStr, BaseModel, Field
 from typing import Any, Dict, List, Optional
 
 PROMPT = """
@@ -93,7 +93,8 @@ class Evaluator:
 
         return self._calculate_weighted_score(result)
 
-    def _calculate_weighted_score(self, result: EvaluationResult) -> float:
+    @staticmethod
+    def _calculate_weighted_score(result: EvaluationResult) -> float:
         """Calculate weighted evaluation score.
 
         Args:

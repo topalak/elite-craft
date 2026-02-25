@@ -39,3 +39,5 @@ class Model(StrEnum):
     GPT_OSS_20 = "gpt-oss:20b-cloud"
     GPT_OSS_120 = "gpt-oss:120b-cloud"
     KIMI_K2_5 = "kimi-k2-5"
+
+    NOMIC = "nomic-embed-text:v1.5"
